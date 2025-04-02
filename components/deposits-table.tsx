@@ -29,7 +29,6 @@ import {
   DollarSign,
   CreditCard,
   FileDown,
-  RefreshCw,
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -311,10 +310,6 @@ export default function DepositsTable() {
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Deposits</h2>
         <div className="flex gap-2">
-          <Button onClick={handleRefreshData} variant="outline" size="sm" disabled={isRefreshing}>
-            <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? "animate-spin" : ""}`} />
-            Refresh
-          </Button>
           <Button onClick={handleExportOptions} variant="outline" size="sm">
             <FileDown className="h-4 w-4 mr-2" />
             Export Options
