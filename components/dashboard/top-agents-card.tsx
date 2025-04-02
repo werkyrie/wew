@@ -6,8 +6,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Progress } from "@/components/ui/progress"
-import { Trophy } from "lucide-react"
+import { Trophy, ArrowRight } from "lucide-react"
 import { useTheme } from "next-themes"
+import Link from "next/link"
 
 interface AgentStat {
   agent: string
@@ -104,6 +105,12 @@ export default function TopAgentsCard() {
           Top Performing Agents
         </CardTitle>
         <CardDescription>Agent performance metrics</CardDescription>
+        <Link
+          href="/team-performance"
+          className="mt-2 text-xs flex items-center text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+        >
+          View all agents <ArrowRight className="ml-1 h-3 w-3" />
+        </Link>
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="deposits" className="w-full">

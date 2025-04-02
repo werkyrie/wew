@@ -612,7 +612,7 @@ export default function DashboardComponent() {
                   variant="ghost"
                   size="sm"
                   className="text-xs w-full justify-between"
-                  onClick={() => router.push("/team")}
+                  onClick={() => router.push("/?tab=team")}
                 >
                   <span>View all agents</span>
                   <ArrowRight className="h-3 w-3" />

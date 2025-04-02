@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { ThemeProvider } from "@/components/theme-provider"
-import { Fingerprint, Mail, ArrowRight } from "lucide-react"
+import { Fingerprint, Mail, ArrowRight, Moon, Sun } from "lucide-react"
 import { motion } from "framer-motion"
 import "particles.js"
 
@@ -201,6 +201,29 @@ export default function LoginPage() {
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
       <div className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden p-4">
+        {/* Theme toggle button */}
+        <div className="absolute top-4 right-4 z-20">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => {
+              setMounted(true)
+              const theme = document.documentElement.classList.contains("dark") ? "light" : "dark"
+              if (theme === "light") {
+                document.documentElement.classList.remove("dark")
+                localStorage.setItem("theme", "light")
+              } else {
+                document.documentElement.classList.add("dark")
+                localStorage.setItem("theme", "dark")
+              }
+            }}
+            className="rounded-full bg-white/10 backdrop-blur-md border border-gray-200 dark:border-gray-700 shadow-sm hover:bg-white/20 dark:hover:bg-gray-800/30"
+          >
+            <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0 text-gray-700" />
+            <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100 text-gray-300" />
+            <span className="sr-only">Toggle theme</span>
+          </Button>
+        </div>
         {/* Background gradient and pattern */}
         <div className="absolute inset-0 bg-gradient-to-br from-gray-100 via-gray-200 to-gray-300 dark:from-gray-800 dark:via-gray-900 dark:to-black z-0">
           <div className="absolute inset-0 bg-grid-white/[0.05] bg-[length:20px_20px]" />
