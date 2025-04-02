@@ -60,6 +60,7 @@ export default function AvatarUpload() {
       const dataUrl = event.target?.result as string
       setAvatarUrl(dataUrl)
       localStorage.setItem("userAvatar", dataUrl)
+      window.dispatchEvent(new Event("avatarUpdated"))
       setIsUploading(false)
 
       toast({
@@ -83,6 +84,7 @@ export default function AvatarUpload() {
   const handleRemoveAvatar = () => {
     setAvatarUrl(null)
     localStorage.removeItem("userAvatar")
+    window.dispatchEvent(new Event("avatarUpdated"))
 
     toast({
       title: "Avatar removed",

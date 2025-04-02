@@ -26,12 +26,14 @@ export default function AgentRegistrationModal({ isOpen, onClose }: AgentRegistr
   const { toast } = useToast()
 
   const [name, setName] = useState("")
+  const [email, setEmail] = useState("")
   const [addedToday, setAddedToday] = useState(0)
   const [monthlyAdded, setMonthlyAdded] = useState(0)
   const [openAccounts, setOpenAccounts] = useState(0)
   const [totalDeposits, setTotalDeposits] = useState(0)
 
   const [nameError, setNameError] = useState("")
+  const [emailError, setEmailError] = useState("")
 
   const validateName = (value: string) => {
     if (!value.trim()) {
@@ -42,13 +44,31 @@ export default function AgentRegistrationModal({ isOpen, onClose }: AgentRegistr
     return true
   }
 
+  const validateEmail = (value: string) => {
+    if (!value.trim()) {
+      setEmailError("Email is required")
+      return false
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(value)) {
+      setEmailError("Please enter a valid email address")
+      return false
+    }
+    setEmailError("")
+    return true
+  }
+
   const handleSubmit = () => {
-    if (!validateName(name)) {
+    const isNameValid = validateName(name)
+    const isEmailValid = validateEmail(email)
+
+    if (!isNameValid || !isEmailValid) {
       return
     }
 
     addAgent({
       name,
+      email,
       addedToday,
       monthlyAdded,
       openAccounts,
@@ -88,6 +108,26 @@ export default function AgentRegistrationModal({ isOpen, onClose }: AgentRegistr
               <div className="text-sm text-red-500 flex items-center">
                 <AlertCircle className="h-3 w-3 mr-1" />
                 {nameError}
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              value={email}
+              onChange={(e) => {
+                setEmail(e.target.value)
+                validateEmail(e.target.value)
+              }}
+              placeholder="Enter agent email"
+              className={emailError ? "border-red-500" : ""}
+            />
+            {emailError && (
+              <div className="text-sm text-red-500 flex items-center">
+                <AlertCircle className="h-3 w-3 mr-1" />
+                {emailError}
               </div>
             )}
           </div>
