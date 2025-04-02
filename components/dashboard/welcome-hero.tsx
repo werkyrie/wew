@@ -4,19 +4,12 @@ import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useClientContext } from "@/context/client-context"
 import { useTheme } from "next-themes"
-import { useAuth } from "@/context/auth-context"
 
 export default function WelcomeHero() {
   const { clients, orders, deposits, withdrawals } = useClientContext()
   const [currentTime, setCurrentTime] = useState(new Date())
   const [greeting, setGreeting] = useState("")
   const { theme } = useTheme()
-  const { user } = useAuth()
-
-  // Extract username from email (remove domain)
-  const username = user?.email ? user.email.split("@")[0] : "User"
-  // Capitalize first letter of username
-  const displayName = username.charAt(0).toUpperCase() + username.slice(1)
 
   useEffect(() => {
     // Update current time every minute
@@ -65,7 +58,10 @@ export default function WelcomeHero() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <p className="text-muted-foreground text-lg">Welcome back {displayName}! Bakbakan na!</p>
+        <p className="text-muted-foreground">
+          Welcome to your Team Hotel Management Dashboard. You are currently managing {clients.length} clients,
+          {orders.length} orders, {deposits.length} deposits, and {withdrawals.length} withdrawals.
+        </p>
       </CardContent>
     </Card>
   )

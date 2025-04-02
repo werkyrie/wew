@@ -1,18 +1,9 @@
 "use client"
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
-import type { Agent, Penalty, Reward, Attendance } from "@/types/team"
+import type { Agent, Penalty, Reward, TeamMetrics, Attendance } from "@/types/team"
 import { db } from "@/lib/firebase"
 import { collection, addDoc, updateDoc, deleteDoc, doc, getDocs, query, where, onSnapshot } from "firebase/firestore"
-
-export interface TeamMetrics {
-  totalAgents: number
-  totalAddedToday: number
-  totalMonthlyAdded: number
-  totalOpenAccounts: number
-  totalDeposits: number
-  totalWithdrawals: number
-}
 
 interface TeamContextType {
   agents: Agent[]
@@ -20,19 +11,19 @@ interface TeamContextType {
   rewards: Reward[]
   attendance: Attendance[]
   metrics: TeamMetrics
-  addAgent: (agent: Omit<Agent, "id" | "commission" | "commissionRate">) => Promise<void>
+  addAgent: (agent: Omit<Agent, "id" | "commission" | "commissionRate">) => Promise<Agent>
   updateAgent: (agent: Agent) => Promise<void>
   deleteAgent: (id: string) => Promise<void>
-  addPenalty: (penalty: Omit<Penalty, "id">) => Promise<void>
+  addPenalty: (penalty: Omit<Penalty, "id">) => Promise<Penalty>
   updatePenalty: (penalty: Penalty) => Promise<void>
   deletePenalty: (id: string) => Promise<void>
-  addReward: (reward: Omit<Reward, "id">) => Promise<void>
+  addReward: (reward: Omit<Reward, "id">) => Promise<Reward>
   updateReward: (reward: Reward) => Promise<void>
   deleteReward: (id: string) => Promise<void>
-  addAttendance: (attendance: Omit<Attendance, "id">) => Promise<void>
+  addAttendance: (attendance: Omit<Attendance, "id">) => Promise<Attendance>
   updateAttendance: (attendance: Attendance) => Promise<void>
   deleteAttendance: (id: string) => Promise<void>
-  calculateCommission: (depositAmount: number, withdrawalAmount: number) => { rate: number; amount: number }
+  calculateCommission: (depositAmount: number) => { rate: number; amount: number }
 }
 
 const TeamContext = createContext<TeamContextType | undefined>(undefined)
@@ -48,45 +39,104 @@ export function TeamProvider({ children }: { children: ReactNode }) {
     totalMonthlyAdded: 0,
     totalOpenAccounts: 0,
     totalDeposits: 0,
-    totalWithdrawals: 0,
   })
 
   // Load data from Firebase on initial render
   useEffect(() => {
     const loadData = async () => {
       try {
-        // Set up real-time listeners for each collection
-        const agentsUnsubscribe = onSnapshot(collection(db, "agents"), (snapshot) => {
-          const agentData = snapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          })) as Agent[]
-          setAgents(agentData)
-        })
+        // Set up real-time listeners for each collection with proper error handling
+        const agentsUnsubscribe = onSnapshot(
+          collection(db, "agents"),
+          (snapshot) => {
+            // Create a Map to ensure uniqueness by ID
+            const agentMap = new Map()
 
-        const penaltiesUnsubscribe = onSnapshot(collection(db, "penalties"), (snapshot) => {
-          const penaltyData = snapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          })) as Penalty[]
-          setPenalties(penaltyData)
-        })
+            snapshot.docs.forEach((doc) => {
+              const agentData = { id: doc.id, ...doc.data() } as Agent
+              agentMap.set(doc.id, agentData)
+            })
 
-        const rewardsUnsubscribe = onSnapshot(collection(db, "rewards"), (snapshot) => {
-          const rewardData = snapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          })) as Reward[]
-          setRewards(rewardData)
-        })
+            // Convert Map to array
+            const uniqueAgents = Array.from(agentMap.values())
+            setAgents(uniqueAgents)
+          },
+          (error) => {
+            console.error("Error in agents listener:", error)
+            // Fall back to localStorage if Firebase fails
+            const savedAgents = localStorage.getItem("agents")
+            if (savedAgents) setAgents(JSON.parse(savedAgents))
+          },
+        )
 
-        const attendanceUnsubscribe = onSnapshot(collection(db, "attendance"), (snapshot) => {
-          const attendanceData = snapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          })) as Attendance[]
-          setAttendance(attendanceData)
-        })
+        const penaltiesUnsubscribe = onSnapshot(
+          collection(db, "penalties"),
+          (snapshot) => {
+            // Create a Map to ensure uniqueness by ID
+            const penaltyMap = new Map()
+
+            snapshot.docs.forEach((doc) => {
+              const penaltyData = { id: doc.id, ...doc.data() } as Penalty
+              penaltyMap.set(doc.id, penaltyData)
+            })
+
+            // Convert Map to array
+            const uniquePenalties = Array.from(penaltyMap.values())
+            setPenalties(uniquePenalties)
+          },
+          (error) => {
+            console.error("Error in penalties listener:", error)
+            // Fall back to localStorage if Firebase fails
+            const savedPenalties = localStorage.getItem("penalties")
+            if (savedPenalties) setPenalties(JSON.parse(savedPenalties))
+          },
+        )
+
+        const rewardsUnsubscribe = onSnapshot(
+          collection(db, "rewards"),
+          (snapshot) => {
+            // Create a Map to ensure uniqueness by ID
+            const rewardMap = new Map()
+
+            snapshot.docs.forEach((doc) => {
+              const rewardData = { id: doc.id, ...doc.data() } as Reward
+              rewardMap.set(doc.id, rewardData)
+            })
+
+            // Convert Map to array
+            const uniqueRewards = Array.from(rewardMap.values())
+            setRewards(uniqueRewards)
+          },
+          (error) => {
+            console.error("Error in rewards listener:", error)
+            // Fall back to localStorage if Firebase fails
+            const savedRewards = localStorage.getItem("rewards")
+            if (savedRewards) setRewards(JSON.parse(savedRewards))
+          },
+        )
+
+        const attendanceUnsubscribe = onSnapshot(
+          collection(db, "attendance"),
+          (snapshot) => {
+            // Create a Map to ensure uniqueness by ID
+            const attendanceMap = new Map()
+
+            snapshot.docs.forEach((doc) => {
+              const attendanceData = { id: doc.id, ...doc.data() } as Attendance
+              attendanceMap.set(doc.id, attendanceData)
+            })
+
+            // Convert Map to array
+            const uniqueAttendance = Array.from(attendanceMap.values())
+            setAttendance(uniqueAttendance)
+          },
+          (error) => {
+            console.error("Error in attendance listener:", error)
+            // Fall back to localStorage if Firebase fails
+            const savedAttendance = localStorage.getItem("attendance")
+            if (savedAttendance) setAttendance(JSON.parse(savedAttendance))
+          },
+        )
 
         // Clean up listeners on unmount
         return () => {
@@ -96,9 +146,9 @@ export function TeamProvider({ children }: { children: ReactNode }) {
           attendanceUnsubscribe()
         }
       } catch (error) {
-        console.error("Error loading team data:", error)
+        console.error("Error setting up team data listeners:", error)
 
-        // Fallback to localStorage if Firebase fails
+        // Fallback to localStorage if Firebase setup fails
         const savedAgents = localStorage.getItem("agents")
         const savedPenalties = localStorage.getItem("penalties")
         const savedRewards = localStorage.getItem("rewards")
@@ -121,7 +171,6 @@ export function TeamProvider({ children }: { children: ReactNode }) {
     const totalMonthlyAdded = agents.reduce((sum, agent) => sum + (agent.monthlyAdded || 0), 0)
     const totalOpenAccounts = agents.reduce((sum, agent) => sum + (agent.openAccounts || 0), 0)
     const totalDeposits = agents.reduce((sum, agent) => sum + (agent.totalDeposits || 0), 0)
-    const totalWithdrawals = agents.reduce((sum, agent) => sum + (agent.totalWithdrawals || 0), 0)
 
     setMetrics({
       totalAgents,
@@ -129,28 +178,26 @@ export function TeamProvider({ children }: { children: ReactNode }) {
       totalMonthlyAdded,
       totalOpenAccounts,
       totalDeposits,
-      totalWithdrawals,
     })
   }, [agents])
 
   // Calculate commission based on deposit amount
-  const calculateCommission = (depositAmount: number, withdrawalAmount: number) => {
+  const calculateCommission = (depositAmount: number) => {
     let rate = 0
-    const netAmount = depositAmount - withdrawalAmount
 
-    if (netAmount >= 100000) {
+    if (depositAmount >= 100000) {
       rate = 0.1 // 10%
-    } else if (netAmount >= 50000) {
+    } else if (depositAmount >= 50000) {
       rate = 0.09 // 9%
-    } else if (netAmount >= 20000) {
+    } else if (depositAmount >= 20000) {
       rate = 0.07 // 7%
-    } else if (netAmount >= 10000) {
+    } else if (depositAmount >= 10000) {
       rate = 0.05 // 5%
-    } else if (netAmount >= 1000) {
+    } else if (depositAmount >= 1000) {
       rate = 0.04 // 4%
     }
 
-    const amount = netAmount * rate
+    const amount = depositAmount * rate
 
     return { rate, amount }
   }
@@ -159,7 +206,7 @@ export function TeamProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const updateAgentsWithCommission = async () => {
       const updatedAgents = agents.map((agent) => {
-        const { rate, amount } = calculateCommission(agent.totalDeposits || 0, agent.totalWithdrawals || 0)
+        const { rate, amount } = calculateCommission(agent.totalDeposits || 0)
         return {
           ...agent,
           commission: amount,
@@ -193,40 +240,70 @@ export function TeamProvider({ children }: { children: ReactNode }) {
   // Agent CRUD operations
   const addAgent = async (agent: Omit<Agent, "id" | "commission" | "commissionRate">) => {
     try {
-      const { rate, amount } = calculateCommission(agent.totalDeposits || 0, agent.totalWithdrawals || 0)
+      const { rate, amount } = calculateCommission(agent.totalDeposits || 0)
       const newAgent = {
         ...agent,
-        totalWithdrawals: agent.totalWithdrawals || 0,
         commission: amount,
         commissionRate: rate * 100,
       }
 
+      // Check for duplicate email before adding
+      const existingAgent = agents.find((a) => a.email === agent.email)
+      if (existingAgent) {
+        throw new Error(`An agent with email ${agent.email} already exists`)
+      }
+
       // Add to Firebase
       const docRef = await addDoc(collection(db, "agents"), newAgent)
+      const agentWithId = { ...newAgent, id: docRef.id } as Agent
 
-      // Update local state with Firebase ID
-      setAgents((prev) => [...prev, { ...newAgent, id: docRef.id } as Agent])
+      // Update local state with Firebase ID - use functional update to avoid race conditions
+      setAgents((prev) => {
+        // Check if agent already exists in state
+        if (prev.some((a) => a.id === docRef.id)) {
+          return prev
+        }
+        return [...prev, agentWithId]
+      })
 
       // Backup to localStorage
-      localStorage.setItem("agents", JSON.stringify([...agents, { ...newAgent, id: docRef.id }]))
+      const updatedAgents = [...agents, agentWithId]
+      localStorage.setItem("agents", JSON.stringify(updatedAgents))
+
+      return agentWithId
     } catch (error) {
       console.error("Error adding agent:", error)
 
-      // Fallback to localStorage only
+      if ((error as Error).message.includes("already exists")) {
+        throw error // Re-throw the duplicate email error
+      }
+
+      // Improved ID generation with timestamp and random string to ensure uniqueness
+      const uniqueId = `agent-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`
+
       const newAgent: Agent = {
         ...agent,
-        id: Math.random().toString(36).substring(2, 9),
-        totalWithdrawals: agent.totalWithdrawals || 0,
+        id: uniqueId,
         commission: 0,
         commissionRate: 0,
       }
 
-      const { rate, amount } = calculateCommission(newAgent.totalDeposits || 0, newAgent.totalWithdrawals || 0)
+      const { rate, amount } = calculateCommission(newAgent.totalDeposits || 0)
       newAgent.commission = amount
       newAgent.commissionRate = rate * 100
 
-      setAgents((prev) => [...prev, newAgent])
-      localStorage.setItem("agents", JSON.stringify([...agents, newAgent]))
+      // Update local state - use functional update to avoid race conditions
+      setAgents((prev) => {
+        // Check if agent already exists in state
+        if (prev.some((a) => a.id === uniqueId)) {
+          return prev
+        }
+        return [...prev, newAgent]
+      })
+
+      const updatedAgents = [...agents, newAgent]
+      localStorage.setItem("agents", JSON.stringify(updatedAgents))
+      return newAgent
     }
   }
 
@@ -310,25 +387,60 @@ export function TeamProvider({ children }: { children: ReactNode }) {
   // Penalty CRUD operations
   const addPenalty = async (penalty: Omit<Penalty, "id">) => {
     try {
+      // Check for potential duplicates
+      const potentialDuplicate = penalties.find(
+        (p) => p.agentId === penalty.agentId && p.description === penalty.description && p.date === penalty.date,
+      )
+
+      if (potentialDuplicate) {
+        throw new Error(`A similar penalty already exists for this agent on ${penalty.date}`)
+      }
+
       // Add to Firebase
       const docRef = await addDoc(collection(db, "penalties"), penalty)
+      const penaltyWithId = { ...penalty, id: docRef.id } as Penalty
 
-      // Update local state with Firebase ID
-      const newPenalty = { ...penalty, id: docRef.id } as Penalty
-      setPenalties((prev) => [...prev, newPenalty])
+      // Update local state with Firebase ID - use functional update to avoid race conditions
+      setPenalties((prev) => {
+        // Check if penalty already exists in state
+        if (prev.some((p) => p.id === docRef.id)) {
+          return prev
+        }
+        return [...prev, penaltyWithId]
+      })
 
       // Backup to localStorage
-      localStorage.setItem("penalties", JSON.stringify([...penalties, newPenalty]))
+      const updatedPenalties = [...penalties, penaltyWithId]
+      localStorage.setItem("penalties", JSON.stringify(updatedPenalties))
+
+      return penaltyWithId
     } catch (error) {
       console.error("Error adding penalty:", error)
 
-      // Fallback to localStorage only
+      if ((error as Error).message.includes("already exists")) {
+        throw error // Re-throw the duplicate penalty error
+      }
+
+      // Improved ID generation with timestamp and random string
+      const uniqueId = `penalty-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`
+
       const newPenalty: Penalty = {
         ...penalty,
-        id: Math.random().toString(36).substring(2, 9),
+        id: uniqueId,
       }
-      setPenalties((prev) => [...prev, newPenalty])
-      localStorage.setItem("penalties", JSON.stringify([...penalties, newPenalty]))
+
+      // Update local state - use functional update to avoid race conditions
+      setPenalties((prev) => {
+        // Check if penalty already exists in state
+        if (prev.some((p) => p.id === uniqueId)) {
+          return prev
+        }
+        return [...prev, newPenalty]
+      })
+
+      const updatedPenalties = [...penalties, newPenalty]
+      localStorage.setItem("penalties", JSON.stringify(updatedPenalties))
+      return newPenalty
     }
   }
 
@@ -380,25 +492,60 @@ export function TeamProvider({ children }: { children: ReactNode }) {
   // Reward CRUD operations
   const addReward = async (reward: Omit<Reward, "id">) => {
     try {
+      // Check for potential duplicates
+      const potentialDuplicate = rewards.find(
+        (r) => r.agentId === reward.agentId && r.description === reward.description && r.date === reward.date,
+      )
+
+      if (potentialDuplicate) {
+        throw new Error(`A similar reward already exists for this agent on ${reward.date}`)
+      }
+
       // Add to Firebase
       const docRef = await addDoc(collection(db, "rewards"), reward)
+      const rewardWithId = { ...reward, id: docRef.id } as Reward
 
-      // Update local state with Firebase ID
-      const newReward = { ...reward, id: docRef.id } as Reward
-      setRewards((prev) => [...prev, newReward])
+      // Update local state with Firebase ID - use functional update to avoid race conditions
+      setRewards((prev) => {
+        // Check if reward already exists in state
+        if (prev.some((r) => r.id === docRef.id)) {
+          return prev
+        }
+        return [...prev, rewardWithId]
+      })
 
       // Backup to localStorage
-      localStorage.setItem("rewards", JSON.stringify([...rewards, newReward]))
+      const updatedRewards = [...rewards, rewardWithId]
+      localStorage.setItem("rewards", JSON.stringify(updatedRewards))
+
+      return rewardWithId
     } catch (error) {
       console.error("Error adding reward:", error)
 
-      // Fallback to localStorage only
+      if ((error as Error).message.includes("already exists")) {
+        throw error // Re-throw the duplicate reward error
+      }
+
+      // Improved ID generation with timestamp and random string
+      const uniqueId = `reward-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`
+
       const newReward: Reward = {
         ...reward,
-        id: Math.random().toString(36).substring(2, 9),
+        id: uniqueId,
       }
-      setRewards((prev) => [...prev, newReward])
-      localStorage.setItem("rewards", JSON.stringify([...rewards, newReward]))
+
+      // Update local state - use functional update to avoid race conditions
+      setRewards((prev) => {
+        // Check if reward already exists in state
+        if (prev.some((r) => r.id === uniqueId)) {
+          return prev
+        }
+        return [...prev, newReward]
+      })
+
+      const updatedRewards = [...rewards, newReward]
+      localStorage.setItem("rewards", JSON.stringify(updatedRewards))
+      return newReward
     }
   }
 
@@ -448,27 +595,62 @@ export function TeamProvider({ children }: { children: ReactNode }) {
   }
 
   // Attendance CRUD operations
-  const addAttendance = async (attendance: Omit<Attendance, "id">) => {
+  const addAttendance = async (attendanceRecord: Omit<Attendance, "id">) => {
     try {
+      // Check for potential duplicates
+      const potentialDuplicate = attendance.find(
+        (a) => a.agentId === attendanceRecord.agentId && a.date === attendanceRecord.date,
+      )
+
+      if (potentialDuplicate) {
+        throw new Error(`An attendance record already exists for this agent on ${attendanceRecord.date}`)
+      }
+
       // Add to Firebase
-      const docRef = await addDoc(collection(db, "attendance"), attendance)
+      const docRef = await addDoc(collection(db, "attendance"), attendanceRecord)
+      const attendanceWithId = { ...attendanceRecord, id: docRef.id } as Attendance
 
-      // Update local state with Firebase ID
-      const newAttendance = { ...attendance, id: docRef.id } as Attendance
-      setAttendance((prev) => [...prev, newAttendance])
+      // Update local state with Firebase ID - use functional update to avoid race conditions
+      setAttendance((prev) => {
+        // Check if attendance already exists in state
+        if (prev.some((a) => a.id === docRef.id)) {
+          return prev
+        }
+        return [...prev, attendanceWithId]
+      })
 
-      // Backup to localStorage - Fix the localStorage key to avoid confusion
-      localStorage.setItem("attendanceRecords", JSON.stringify([...attendance, newAttendance]))
+      // Backup to localStorage - Fix the localStorage key
+      const updatedAttendance = [...attendance, attendanceWithId]
+      localStorage.setItem("attendance", JSON.stringify(updatedAttendance))
+
+      return attendanceWithId
     } catch (error) {
       console.error("Error adding attendance:", error)
 
-      // Fallback to localStorage only
-      const newAttendance: Attendance = {
-        ...attendance,
-        id: Math.random().toString(36).substring(2, 9),
+      if ((error as Error).message.includes("already exists")) {
+        throw error // Re-throw the duplicate attendance error
       }
-      setAttendance((prev) => [...prev, newAttendance])
-      localStorage.setItem("attendanceRecords", JSON.stringify([...attendance, newAttendance]))
+
+      // Improved ID generation with timestamp and random string
+      const uniqueId = `attendance-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`
+
+      const newAttendance: Attendance = {
+        ...attendanceRecord,
+        id: uniqueId,
+      }
+
+      // Update local state - use functional update to avoid race conditions
+      setAttendance((prev) => {
+        // Check if attendance already exists in state
+        if (prev.some((a) => a.id === uniqueId)) {
+          return prev
+        }
+        return [...prev, newAttendance]
+      })
+
+      const updatedAttendance = [...attendance, newAttendance]
+      localStorage.setItem("attendance", JSON.stringify(updatedAttendance))
+      return newAttendance
     }
   }
 

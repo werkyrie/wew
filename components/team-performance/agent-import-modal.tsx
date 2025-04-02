@@ -61,49 +61,6 @@ export default function AgentImportModal({ isOpen, onClose }: AgentImportModalPr
     }
   }
 
-  // Update the processCSV function to handle the new column
-  const processCSV = (text: string) => {
-    const lines = text.split("\n").filter((line) => line.trim() !== "")
-    const headers = lines[0].split(",").map((header) => header.trim())
-
-    // Check for required headers
-    const requiredHeaders = ["Agent Name"]
-    const missingHeaders = requiredHeaders.filter((header) => !headers.includes(header))
-
-    if (missingHeaders.length > 0) {
-      setError(`Missing required headers: ${missingHeaders.join(", ")}`)
-      return []
-    }
-
-    // Map CSV data to agent objects
-    const agents = []
-    for (let i = 1; i < lines.length; i++) {
-      const values = lines[i].split(",").map((value) => value.trim())
-      if (values.length !== headers.length) continue
-
-      const agent: any = {}
-      headers.forEach((header, index) => {
-        if (header === "Agent Name") agent.name = values[index]
-        else if (header === "Added Today") agent.addedToday = Number.parseInt(values[index]) || 0
-        else if (header === "Monthly Added") agent.monthlyAdded = Number.parseInt(values[index]) || 0
-        else if (header === "Open Accounts") agent.openAccounts = Number.parseInt(values[index]) || 0
-        else if (header === "Total Deposits") agent.totalDeposits = Number.parseInt(values[index]) || 0
-        else if (header === "Total Withdrawals") agent.totalWithdrawals = Number.parseInt(values[index]) || 0
-      })
-
-      // Set default values for missing fields
-      agent.addedToday = agent.addedToday || 0
-      agent.monthlyAdded = agent.monthlyAdded || 0
-      agent.openAccounts = agent.openAccounts || 0
-      agent.totalDeposits = agent.totalDeposits || 0
-      agent.totalWithdrawals = agent.totalWithdrawals || 0
-
-      agents.push(agent)
-    }
-
-    return agents
-  }
-
   const handleImport = async () => {
     if (!csvData.trim()) {
       setError("Please enter or upload CSV data")

@@ -96,7 +96,7 @@ export default function AgentManagement() {
   }
 
   // Handle form submission
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     if (!formData.name || !formData.email || !formData.position || !formData.joinDate) {
@@ -108,33 +108,55 @@ export default function AgentManagement() {
       return
     }
 
-    const agentData: Agent = {
-      id: formData.id || `agent-${Date.now()}`,
-      name: formData.name,
-      email: formData.email,
-      phone: formData.phone,
-      position: formData.position,
-      joinDate: formData.joinDate,
-      status: formData.status,
-    }
+    try {
+      // Check for duplicate email in edit mode
+      if (
+        dialogMode === "edit" &&
+        formData.email !== selectedAgent?.email &&
+        agents.some((agent) => agent.email === formData.email)
+      ) {
+        toast({
+          title: "Duplicate Email",
+          description: "An agent with this email already exists.",
+          variant: "destructive",
+        })
+        return
+      }
 
-    if (dialogMode === "add") {
-      addAgent(agentData)
+      const agentData: Agent = {
+        id: formData.id || `agent-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`,
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        position: formData.position,
+        joinDate: formData.joinDate,
+        status: formData.status,
+      }
+
+      if (dialogMode === "add") {
+        await addAgent(agentData)
+        toast({
+          title: "Agent Added",
+          description: `${agentData.name} has been added successfully.`,
+          variant: "success",
+        })
+      } else {
+        await updateAgent(agentData)
+        toast({
+          title: "Agent Updated",
+          description: `${agentData.name}'s information has been updated.`,
+          variant: "success",
+        })
+      }
+
+      setIsDialogOpen(false)
+    } catch (error) {
       toast({
-        title: "Agent Added",
-        description: `${agentData.name} has been added successfully.`,
-        variant: "success",
-      })
-    } else {
-      updateAgent(agentData)
-      toast({
-        title: "Agent Updated",
-        description: `${agentData.name}'s information has been updated.`,
-        variant: "success",
+        variant: "destructive",
+        title: "Error",
+        description: (error as Error).message || "Failed to save agent",
       })
     }
-
-    setIsDialogOpen(false)
   }
 
   // Handle confirm delete

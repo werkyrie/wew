@@ -33,7 +33,7 @@ export default function RewardsTab() {
   const [showForm, setShowForm] = useState(false)
 
   // Modify the handleAddReward function to prevent duplicates
-  const handleAddReward = () => {
+  const handleAddReward = async () => {
     if (!selectedAgentId) {
       toast({
         variant: "destructive",
@@ -64,28 +64,38 @@ export default function RewardsTab() {
     const selectedAgent = agents.find((a) => a.id === selectedAgentId)
     if (!selectedAgent) return
 
-    addReward({
-      agentId: selectedAgentId,
-      agentName: selectedAgent.name,
-      description,
-      amount,
-      date: date ? format(date, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
-      status,
-    })
+    const formattedDate = date ? format(date, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd")
 
-    // Reset form
-    setSelectedAgentId("")
-    setDescription("")
-    setAmount(0)
-    setDate(new Date())
-    setStatus("Pending")
-    // Hide form after submission
-    setShowForm(false)
+    try {
+      await addReward({
+        agentId: selectedAgentId,
+        agentName: selectedAgent.name,
+        description,
+        amount,
+        date: formattedDate,
+        status,
+      })
 
-    toast({
-      title: "Reward Added",
-      description: `Reward has been recorded for ${selectedAgent.name}`,
-    })
+      // Reset form
+      setSelectedAgentId("")
+      setDescription("")
+      setAmount(0)
+      setDate(new Date())
+      setStatus("Pending")
+      // Hide form after submission
+      setShowForm(false)
+
+      toast({
+        title: "Reward Added",
+        description: `Reward has been recorded for ${selectedAgent.name}`,
+      })
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: (error as Error).message || "Failed to add reward",
+      })
+    }
   }
 
   const handleDeleteReward = (id: string, agentName: string) => {

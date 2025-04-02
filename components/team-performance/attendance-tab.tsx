@@ -31,7 +31,7 @@ export default function AttendanceTab() {
   const [showForm, setShowForm] = useState(false)
 
   // Modify the handleAddAttendance function to prevent duplicates
-  const handleAddAttendance = () => {
+  const handleAddAttendance = async () => {
     if (!selectedAgentId) {
       toast({
         variant: "destructive",
@@ -44,42 +44,36 @@ export default function AttendanceTab() {
     const selectedAgent = agents.find((a) => a.id === selectedAgentId)
     if (!selectedAgent) return
 
-    // Check if attendance already exists for this agent on this date
-    const attendanceExists = attendance.some(
-      (a) =>
-        a.agentId === selectedAgentId &&
-        a.date === (date ? format(date, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd")),
-    )
+    const formattedDate = date ? format(date, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd")
 
-    if (attendanceExists) {
+    try {
+      await addAttendance({
+        agentId: selectedAgentId,
+        agentName: selectedAgent.name,
+        remarks,
+        date: formattedDate,
+        status,
+      })
+
+      // Reset form
+      setSelectedAgentId("")
+      setRemarks("")
+      setDate(new Date())
+      setStatus("Whole Day")
+      // Hide form after submission
+      setShowForm(false)
+
+      toast({
+        title: "Absence Added",
+        description: `Absence has been recorded for ${selectedAgent.name}`,
+      })
+    } catch (error) {
       toast({
         variant: "destructive",
         title: "Error",
-        description: `Absence for ${selectedAgent.name} on this date already exists`,
+        description: (error as Error).message || "Failed to add absence record",
       })
-      return
     }
-
-    addAttendance({
-      agentId: selectedAgentId,
-      agentName: selectedAgent.name,
-      remarks,
-      date: date ? format(date, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
-      status,
-    })
-
-    // Reset form
-    setSelectedAgentId("")
-    setRemarks("")
-    setDate(new Date())
-    setStatus("Whole Day")
-    // Hide form after submission
-    setShowForm(false)
-
-    toast({
-      title: "Absence Added",
-      description: `Absence has been recorded for ${selectedAgent.name}`,
-    })
   }
 
   const handleDeleteAttendance = (id: string, agentName: string) => {

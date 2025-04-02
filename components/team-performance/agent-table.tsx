@@ -109,17 +109,8 @@ export default function AgentTable() {
     const isEditable =
       // For viewers: only these specific fields are editable
       (isViewer && (field === "addedToday" || field === "monthlyAdded" || field === "openAccounts")) ||
-      // For admins: all these fields plus totalDeposits and totalWithdrawals are editable
-      (isAdmin &&
-        (field === "name" ||
-          field === "addedToday" ||
-          field === "monthlyAdded" ||
-          field === "openAccounts" ||
-          field === "totalDeposits" ||
-          field === "totalWithdrawals")) ||
-      // For non-viewers/non-admins (editors): these fields are editable
+      // For non-viewers (admins/editors): all these fields are editable
       (!isViewer &&
-        !isAdmin &&
         (field === "name" || field === "addedToday" || field === "monthlyAdded" || field === "openAccounts"))
 
     if (isEditable) {
@@ -254,7 +245,6 @@ export default function AgentTable() {
       "Monthly Added",
       "Open Accounts",
       "Total Deposits",
-      "Total Withdrawals",
       "Commission Rate",
       "Commission Amount",
     ]
@@ -264,7 +254,6 @@ export default function AgentTable() {
       agent.monthlyAdded,
       agent.openAccounts,
       agent.totalDeposits,
-      agent.totalWithdrawals || 0,
       `${agent.commissionRate}%`,
       agent.commission,
     ])
@@ -295,7 +284,7 @@ export default function AgentTable() {
 
   const handleExportTemplate = () => {
     // Create CSV template with just headers
-    const headers = ["Agent Name", "Added Today", "Monthly Added", "Total Deposits", "Total Withdrawals"]
+    const headers = ["Agent Name", "Added Today", "Monthly Added", "Total Deposits"]
     const csvContent = headers.join(",")
 
     // Create and download the file
@@ -323,17 +312,8 @@ export default function AgentTable() {
     const isEditable =
       // For viewers: only these specific fields are editable
       (isViewer && (field === "addedToday" || field === "monthlyAdded" || field === "openAccounts")) ||
-      // For admins: all these fields plus totalDeposits and totalWithdrawals are editable
-      (isAdmin &&
-        (field === "name" ||
-          field === "addedToday" ||
-          field === "monthlyAdded" ||
-          field === "openAccounts" ||
-          field === "totalDeposits" ||
-          field === "totalWithdrawals")) ||
-      // For non-viewers/non-admins (editors): these fields are editable
+      // For non-viewers (admins/editors): all these fields are editable
       (!isViewer &&
-        !isAdmin &&
         (field === "name" || field === "addedToday" || field === "monthlyAdded" || field === "openAccounts"))
 
     if (isEditing) {
@@ -372,13 +352,7 @@ export default function AgentTable() {
 
     return (
       <div className="flex items-center justify-center group">
-        <span className={`${field === "name" ? "font-semibold" : ""} text-base`}>
-          {field === "name"
-            ? value
-            : field === "totalDeposits" || field === "totalWithdrawals"
-              ? `$${Number(value).toLocaleString()}`
-              : value}
-        </span>
+        <span className={field === "name" ? "font-medium" : ""}>{field === "name" ? value : value}</span>
         {isEditable && (
           <TooltipProvider>
             <Tooltip>
@@ -387,7 +361,7 @@ export default function AgentTable() {
                   variant="ghost"
                   size="icon"
                   onClick={() => handleCellEditClick(agent.id, field, value)}
-                  className="h-7 w-7 opacity-0 ml-2 group-hover:opacity-100 transition-opacity"
+                  className="h-7 w-7 opacity-100 ml-2"
                 >
                   <Edit className="h-3.5 w-3.5 text-muted-foreground" />
                 </Button>
@@ -496,10 +470,7 @@ export default function AgentTable() {
                   />
                 </TableHead>
               )}
-              <TableHead
-                className="cursor-pointer font-semibold text-center text-base"
-                onClick={() => handleSort("name")}
-              >
+              <TableHead className="cursor-pointer font-medium text-center" onClick={() => handleSort("name")}>
                 Agent Name
                 {sortField === "name" &&
                   (sortDirection === "asc" ? (
@@ -508,10 +479,7 @@ export default function AgentTable() {
                     <ChevronDown className="ml-1 h-4 w-4 inline" />
                   ))}
               </TableHead>
-              <TableHead
-                className="cursor-pointer font-semibold text-center text-base"
-                onClick={() => handleSort("addedToday")}
-              >
+              <TableHead className="cursor-pointer font-medium text-center" onClick={() => handleSort("addedToday")}>
                 Added Today
                 {sortField === "addedToday" &&
                   (sortDirection === "asc" ? (
@@ -520,10 +488,7 @@ export default function AgentTable() {
                     <ChevronDown className="ml-1 h-4 w-4 inline" />
                   ))}
               </TableHead>
-              <TableHead
-                className="cursor-pointer font-semibold text-center text-base"
-                onClick={() => handleSort("monthlyAdded")}
-              >
+              <TableHead className="cursor-pointer font-medium text-center" onClick={() => handleSort("monthlyAdded")}>
                 Monthly Added
                 {sortField === "monthlyAdded" &&
                   (sortDirection === "asc" ? (
@@ -532,10 +497,7 @@ export default function AgentTable() {
                     <ChevronDown className="ml-1 h-4 w-4 inline" />
                   ))}
               </TableHead>
-              <TableHead
-                className="cursor-pointer font-semibold text-center text-base"
-                onClick={() => handleSort("openAccounts")}
-              >
+              <TableHead className="cursor-pointer font-medium text-center" onClick={() => handleSort("openAccounts")}>
                 Open Accounts
                 {sortField === "openAccounts" &&
                   (sortDirection === "asc" ? (
@@ -544,10 +506,7 @@ export default function AgentTable() {
                     <ChevronDown className="ml-1 h-4 w-4 inline" />
                   ))}
               </TableHead>
-              <TableHead
-                className="cursor-pointer font-semibold text-center text-base"
-                onClick={() => handleSort("totalDeposits")}
-              >
+              <TableHead className="cursor-pointer font-medium text-center" onClick={() => handleSort("totalDeposits")}>
                 Total Deposits
                 {sortField === "totalDeposits" &&
                   (sortDirection === "asc" ? (
@@ -557,19 +516,7 @@ export default function AgentTable() {
                   ))}
               </TableHead>
               <TableHead
-                className="cursor-pointer font-semibold text-center text-base"
-                onClick={() => handleSort("totalWithdrawals")}
-              >
-                Total Withdrawals
-                {sortField === "totalWithdrawals" &&
-                  (sortDirection === "asc" ? (
-                    <ChevronUp className="ml-1 h-4 w-4 inline" />
-                  ) : (
-                    <ChevronDown className="ml-1 h-4 w-4 inline" />
-                  ))}
-              </TableHead>
-              <TableHead
-                className="cursor-pointer font-semibold text-center text-base"
+                className="cursor-pointer font-medium text-center"
                 onClick={() => handleSort("commissionRate")}
               >
                 Commission
@@ -580,7 +527,7 @@ export default function AgentTable() {
                     <ChevronDown className="ml-1 h-4 w-4 inline" />
                   ))}
               </TableHead>
-              <TableHead className="text-center font-semibold text-base">Actions</TableHead>
+              <TableHead className="text-center">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -613,25 +560,12 @@ export default function AgentTable() {
                   <TableCell className="editable-cell text-center">
                     {renderEditableCell(agent, "openAccounts", agent.openAccounts)}
                   </TableCell>
-                  <TableCell className={`${isAdmin ? "editable-cell" : ""} text-center`}>
-                    {isAdmin ? (
-                      renderEditableCell(agent, "totalDeposits", agent.totalDeposits)
-                    ) : (
-                      <span className="font-medium text-base">${agent.totalDeposits.toLocaleString()}</span>
-                    )}
-                  </TableCell>
-                  <TableCell className={`${isAdmin ? "editable-cell" : ""} text-center`}>
-                    {isAdmin ? (
-                      renderEditableCell(agent, "totalWithdrawals", agent.totalWithdrawals || 0)
-                    ) : (
-                      <span className="font-medium text-base">${(agent.totalWithdrawals || 0).toLocaleString()}</span>
-                    )}
+                  <TableCell className={`${isViewer ? "" : "editable-cell"} text-center`}>
+                    <span className="font-medium">${agent.totalDeposits.toLocaleString()}</span>
                   </TableCell>
                   <TableCell className="text-center">
                     <div className="flex justify-center">
-                      <Badge
-                        className={`${getCommissionTierClass(agent.commissionRate || 0)} transition-all text-base px-3 py-1`}
-                      >
+                      <Badge className={`${getCommissionTierClass(agent.commissionRate || 0)} transition-all`}>
                         {agent.commissionRate}% (${agent.commission?.toLocaleString()})
                       </Badge>
                     </div>

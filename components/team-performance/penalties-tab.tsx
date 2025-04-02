@@ -31,7 +31,7 @@ export default function PenaltiesTab() {
   const [showForm, setShowForm] = useState(false)
 
   // Modify the handleAddPenalty function to prevent duplicates
-  const handleAddPenalty = () => {
+  const handleAddPenalty = async () => {
     if (!selectedAgentId) {
       toast({
         variant: "destructive",
@@ -62,26 +62,36 @@ export default function PenaltiesTab() {
     const selectedAgent = agents.find((a) => a.id === selectedAgentId)
     if (!selectedAgent) return
 
-    addPenalty({
-      agentId: selectedAgentId,
-      agentName: selectedAgent.name,
-      description,
-      amount,
-      date: date ? format(date, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
-    })
+    const formattedDate = date ? format(date, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd")
 
-    // Reset form
-    setSelectedAgentId("")
-    setDescription("")
-    setAmount(0)
-    setDate(new Date())
-    // Hide form after submission
-    setShowForm(false)
+    try {
+      await addPenalty({
+        agentId: selectedAgentId,
+        agentName: selectedAgent.name,
+        description,
+        amount,
+        date: formattedDate,
+      })
 
-    toast({
-      title: "Penalty Added",
-      description: `Penalty has been recorded for ${selectedAgent.name}`,
-    })
+      // Reset form
+      setSelectedAgentId("")
+      setDescription("")
+      setAmount(0)
+      setDate(new Date())
+      // Hide form after submission
+      setShowForm(false)
+
+      toast({
+        title: "Penalty Added",
+        description: `Penalty has been recorded for ${selectedAgent.name}`,
+      })
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: (error as Error).message || "Failed to add penalty",
+      })
+    }
   }
 
   const handleDeletePenalty = (id: string, agentName: string) => {

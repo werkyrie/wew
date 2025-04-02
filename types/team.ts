@@ -5,7 +5,6 @@ export interface Agent {
   monthlyAdded: number
   openAccounts: number
   totalDeposits: number
-  totalWithdrawals: number
   commission?: number
   commissionRate?: number
   email?: string
