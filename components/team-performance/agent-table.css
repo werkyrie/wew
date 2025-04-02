@@ -1,0 +1,56 @@
+/* Hover effects for editable cells */
+.editable-cell .group:hover .opacity-0 {
+  opacity: 1;
+}
+
+/* Commission tier colors */
+.commission-tier-0 {
+  background-color: #f3f4f6;
+  color: #6b7280;
+}
+
+.commission-tier-4 {
+  background-color: #dbeafe;
+  color: #1e40af;
+}
+
+.commission-tier-5 {
+  background-color: #e0f2fe;
+  color: #0369a1;
+}
+
+.commission-tier-7 {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.commission-tier-9 {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.commission-tier-10 {
+  background-color: #fee2e2;
+  color: #b91c1c;
+}
+
+/* Animation for fade in */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+/* Editable cell input styling */
+.editable-cell-input {
+  max-width: 120px;
+  height: 32px;
+}
+

@@ -22,6 +22,7 @@ interface NotificationContextType {
   markAsRead: () => void
   markAllAsRead: () => void
   removeNotification: (id: string) => void
+  clearAll: () => void
   clearAllNotifications: () => void
 }
 
@@ -29,7 +30,7 @@ const NotificationContext = createContext<NotificationContextType | undefined>(u
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
   const [notifications, setNotifications] = useState<Notification[]>([])
-  const { clients, orders, deposits } = useClientContext()
+  const { orderRequests } = useClientContext()
 
   // Load notifications from localStorage on initial render
   useEffect(() => {
@@ -43,6 +44,31 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     localStorage.setItem("notifications", JSON.stringify(notifications))
   }, [notifications])
+
+  // Monitor order requests and create notifications for new ones
+  useEffect(() => {
+    if (orderRequests && orderRequests.length > 0) {
+      // Check for new pending order requests
+      const pendingRequests = orderRequests.filter((request) => request.status === "Pending")
+
+      if (pendingRequests.length > 0) {
+        // Check if we already have a notification for pending requests
+        const hasOrderRequestNotification = notifications.some(
+          (notification) => notification.title === "Pending Order Requests",
+        )
+
+        // If we don't have a notification yet, create one
+        if (!hasOrderRequestNotification && pendingRequests.length > 0) {
+          addNotification({
+            type: "info",
+            title: "Pending Order Requests",
+            message: `You have ${pendingRequests.length} pending order request${pendingRequests.length > 1 ? "s" : ""} that need your attention.`,
+            link: "/order-requests",
+          })
+        }
+      }
+    }
+  }, [orderRequests])
 
   const unreadCount = notifications.filter((notification) => !notification.read).length
 
@@ -69,6 +95,10 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     setNotifications((prev) => prev.filter((notification) => notification.id !== id))
   }
 
+  const clearAll = () => {
+    setNotifications([])
+  }
+
   const clearAllNotifications = () => {
     setNotifications([])
   }
@@ -82,6 +112,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         markAsRead: markAllAsRead,
         markAllAsRead,
         removeNotification,
+        clearAll,
         clearAllNotifications,
       }}
     >

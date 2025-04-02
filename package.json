@@ -62,7 +62,8 @@
     "@supabase/supabase-js": "latest",
     "firebase": "latest",
     "framer-motion": "latest",
-    "@supabase/auth-helpers-nextjs": "latest"
+    "@supabase/auth-helpers-nextjs": "latest",
+    "particles.js": "latest"
   },
   "devDependencies": {
     "@types/node": "^22",

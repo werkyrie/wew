@@ -23,7 +23,7 @@ interface TeamContextType {
   addAttendance: (attendance: Omit<Attendance, "id">) => Promise<Attendance>
   updateAttendance: (attendance: Attendance) => Promise<void>
   deleteAttendance: (id: string) => Promise<void>
-  calculateCommission: (depositAmount: number) => { rate: number; amount: number }
+  calculateCommission: (depositAmount: number, withdrawalAmount?: number) => { rate: number; amount: number }
 }
 
 const TeamContext = createContext<TeamContextType | undefined>(undefined)
@@ -182,22 +182,24 @@ export function TeamProvider({ children }: { children: ReactNode }) {
   }, [agents])
 
   // Calculate commission based on deposit amount
-  const calculateCommission = (depositAmount: number) => {
+  const calculateCommission = (depositAmount: number, withdrawalAmount = 0) => {
+    // Calculate net amount (deposits - withdrawals)
+    const netAmount = Math.max(0, depositAmount - withdrawalAmount)
     let rate = 0
 
-    if (depositAmount >= 100000) {
+    if (netAmount >= 100000) {
       rate = 0.1 // 10%
-    } else if (depositAmount >= 50000) {
+    } else if (netAmount >= 50000) {
       rate = 0.09 // 9%
-    } else if (depositAmount >= 20000) {
+    } else if (netAmount >= 20000) {
       rate = 0.07 // 7%
-    } else if (depositAmount >= 10000) {
+    } else if (netAmount >= 10000) {
       rate = 0.05 // 5%
-    } else if (depositAmount >= 1000) {
+    } else if (netAmount >= 1000) {
       rate = 0.04 // 4%
     }
 
-    const amount = depositAmount * rate
+    const amount = netAmount * rate
 
     return { rate, amount }
   }
@@ -206,7 +208,7 @@ export function TeamProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const updateAgentsWithCommission = async () => {
       const updatedAgents = agents.map((agent) => {
-        const { rate, amount } = calculateCommission(agent.totalDeposits || 0)
+        const { rate, amount } = calculateCommission(agent.totalDeposits || 0, agent.totalWithdrawals || 0)
         return {
           ...agent,
           commission: amount,

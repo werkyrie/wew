@@ -18,7 +18,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { AlertCircle, FileUp, Upload, X, Check } from "lucide-react"
+import { AlertCircle, FileUp, Upload, X, Check, Download } from "lucide-react"
 import { Progress } from "@/components/ui/progress"
 
 interface AgentImportModalProps {
@@ -230,6 +230,175 @@ export default function AgentImportModal({ isOpen, onClose }: AgentImportModalPr
     fileInputRef.current?.click()
   }
 
+  // Update the processCSV function to handle totalWithdrawals
+  const processCSV = (text: string) => {
+    try {
+      const lines = text.split("\n")
+      const headers = lines[0].split(",").map((header) => header.trim())
+
+      // Check for required headers
+      const requiredHeaders = ["Agent Name"]
+      const missingHeaders = requiredHeaders.filter((header) => !headers.includes(header))
+
+      if (missingHeaders.length > 0) {
+        setError(`Missing required headers: ${missingHeaders.join(", ")}`)
+        return []
+      }
+
+      // Map CSV columns to agent properties
+      const nameIndex = headers.indexOf("Agent Name")
+      const addedTodayIndex = headers.indexOf("Added Today")
+      const monthlyAddedIndex = headers.indexOf("Monthly Added")
+      const openAccountsIndex = headers.indexOf("Open Accounts")
+      const totalDepositsIndex = headers.indexOf("Total Deposits")
+      const totalWithdrawalsIndex = headers.indexOf("Total Withdrawals")
+
+      // Parse data rows
+      const agents = []
+      for (let i = 1; i < lines.length; i++) {
+        if (!lines[i].trim()) continue
+
+        const values = lines[i].split(",").map((value) => value.trim())
+
+        // Skip rows without a name
+        if (!values[nameIndex]) continue
+
+        const agent = {
+          name: values[nameIndex],
+          addedToday: addedTodayIndex >= 0 ? Number.parseInt(values[addedTodayIndex]) || 0 : 0,
+          monthlyAdded: monthlyAddedIndex >= 0 ? Number.parseInt(values[monthlyAddedIndex]) || 0 : 0,
+          openAccounts: openAccountsIndex >= 0 ? Number.parseInt(values[openAccountsIndex]) || 0 : 0,
+          totalDeposits: totalDepositsIndex >= 0 ? Number.parseInt(values[totalDepositsIndex]) || 0 : 0,
+          totalWithdrawals: totalWithdrawalsIndex >= 0 ? Number.parseInt(values[totalWithdrawalsIndex]) || 0 : 0,
+          status: "Active" as "Active" | "Inactive",
+        }
+
+        agents.push(agent)
+      }
+
+      return agents
+    } catch (error) {
+      console.error("Error processing CSV:", error)
+      setError("Failed to process CSV file. Please check the format.")
+      return []
+    }
+  }
+
+  const handleProcessCSVData = async () => {
+    if (!csvData.trim()) {
+      setError("Please enter or upload CSV data")
+      return
+    }
+
+    try {
+      setIsProcessing(true)
+      setProgress(0)
+      setError("")
+
+      const agents = processCSV(csvData)
+
+      if (agents.length === 0 && !error) {
+        setError("No valid agents found in the CSV data")
+        setIsProcessing(false)
+        return
+      }
+
+      let successCount = 0
+      let errorCount = 0
+      const processedNames = new Set()
+
+      for (let i = 0; i < agents.length; i++) {
+        const agent = agents[i]
+
+        if (processedNames.has(agent.name.toLowerCase())) {
+          errorCount++
+          continue
+        }
+        processedNames.add(agent.name.toLowerCase())
+
+        const existingAgentIndex = agents.findIndex((a) => a.name.toLowerCase() === agent.name.toLowerCase())
+
+        if (existingAgentIndex !== -1) {
+          const existingAgent = agents[existingAgentIndex]
+          updateAgent({
+            ...existingAgent,
+            addedToday: agent.addedToday,
+            monthlyAdded: agent.monthlyAdded,
+            openAccounts: agent.openAccounts,
+            totalDeposits: agent.totalDeposits,
+            totalWithdrawals: agent.totalWithdrawals,
+          })
+        } else {
+          addAgent({
+            name: agent.name,
+            addedToday: agent.addedToday,
+            monthlyAdded: agent.monthlyAdded,
+            openAccounts: agent.openAccounts,
+            totalDeposits: agent.totalDeposits,
+            totalWithdrawals: agent.totalWithdrawals,
+          })
+        }
+
+        successCount++
+        setProgress(Math.round(((i + 1) / agents.length) * 100))
+        await new Promise((resolve) => setTimeout(resolve, 50))
+      }
+
+      setSuccessCount(successCount)
+      setErrorCount(errorCount)
+      setSuccess(true)
+      setIsProcessing(false)
+
+      if (successCount > 0) {
+        toast({
+          variant: "success",
+          title: "Import Successful",
+          description: `Successfully imported ${successCount} agents. ${errorCount > 0 ? `${errorCount} agents had errors and were skipped.` : ""}`,
+        })
+      } else {
+        setError("No valid agents found in the CSV data")
+      }
+
+      if (successCount > 0) {
+        setTimeout(() => {
+          onClose()
+        }, 2000)
+      }
+    } catch (error) {
+      setError("Error processing CSV data. Please check the format.")
+      setIsProcessing(false)
+    }
+  }
+
+  const handleExportTemplate = () => {
+    // Create CSV template with just headers
+    const headers = [
+      "Agent Name",
+      "Added Today",
+      "Monthly Added",
+      "Open Accounts",
+      "Total Deposits",
+      "Total Withdrawals",
+    ]
+    const csvContent = headers.join(",")
+
+    // Create and download the file
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement("a")
+    link.setAttribute("href", url)
+    link.setAttribute("download", "agent_import_template.csv")
+    link.style.visibility = "hidden"
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+
+    toast({
+      title: "Template Downloaded",
+      description: "CSV import template has been downloaded",
+    })
+  }
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[600px] animate-fade-in">
@@ -319,7 +488,11 @@ export default function AgentImportModal({ isOpen, onClose }: AgentImportModalPr
           <Button variant="outline" onClick={onClose} disabled={isProcessing}>
             Cancel
           </Button>
-          <Button onClick={handleImport} disabled={isProcessing || !csvData.trim()} className="btn-primary">
+          <Button onClick={handleExportTemplate} variant="secondary" disabled={isProcessing}>
+            <Download className="mr-2 h-4 w-4" />
+            Template
+          </Button>
+          <Button onClick={handleProcessCSVData} disabled={isProcessing || !csvData.trim()} className="btn-primary">
             <Upload className="mr-2 h-4 w-4" />
             {isProcessing ? "Importing..." : "Import Agents"}
           </Button>

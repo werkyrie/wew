@@ -1,5 +1,7 @@
 "use client"
 
+import type React from "react"
+
 import { useState } from "react"
 import { useTeamContext } from "@/context/team-context"
 import { Button } from "@/components/ui/button"
@@ -25,12 +27,19 @@ export default function AgentRegistrationModal({ isOpen, onClose }: AgentRegistr
   const { addAgent } = useTeamContext()
   const { toast } = useToast()
 
-  const [name, setName] = useState("")
-  const [email, setEmail] = useState("")
-  const [addedToday, setAddedToday] = useState(0)
-  const [monthlyAdded, setMonthlyAdded] = useState(0)
-  const [openAccounts, setOpenAccounts] = useState(0)
-  const [totalDeposits, setTotalDeposits] = useState(0)
+  // Add totalWithdrawals to the form state
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    position: "",
+    addedToday: 0,
+    monthlyAdded: 0,
+    openAccounts: 0,
+    totalDeposits: 0,
+    totalWithdrawals: 0,
+    status: "Active" as "Active" | "Inactive",
+  })
 
   const [nameError, setNameError] = useState("")
   const [emailError, setEmailError] = useState("")
@@ -59,28 +68,37 @@ export default function AgentRegistrationModal({ isOpen, onClose }: AgentRegistr
   }
 
   const handleSubmit = () => {
-    const isNameValid = validateName(name)
-    const isEmailValid = validateEmail(email)
+    const isNameValid = validateName(formData.name)
+    const isEmailValid = validateEmail(formData.email)
 
     if (!isNameValid || !isEmailValid) {
       return
     }
 
     addAgent({
-      name,
-      email,
-      addedToday,
-      monthlyAdded,
-      openAccounts,
-      totalDeposits,
+      name: formData.name,
+      email: formData.email,
+      addedToday: formData.addedToday,
+      monthlyAdded: formData.monthlyAdded,
+      openAccounts: formData.openAccounts,
+      totalDeposits: formData.totalDeposits,
+      totalWithdrawals: formData.totalWithdrawals,
     })
 
     toast({
       title: "Agent Added",
-      description: `${name} has been added successfully`,
+      description: `${formData.name} has been added successfully`,
     })
 
     onClose()
+  }
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target
+    setFormData((prevState) => ({
+      ...prevState,
+      [name]: name === "totalDeposits" || name === "totalWithdrawals" ? Number(value) : value,
+    }))
   }
 
   return (
@@ -96,9 +114,10 @@ export default function AgentRegistrationModal({ isOpen, onClose }: AgentRegistr
             <Label htmlFor="name">Agent Name</Label>
             <Input
               id="name"
-              value={name}
+              name="name"
+              value={formData.name}
               onChange={(e) => {
-                setName(e.target.value)
+                setFormData({ ...formData, name: e.target.value })
                 validateName(e.target.value)
               }}
               placeholder="Enter agent name"
@@ -116,9 +135,10 @@ export default function AgentRegistrationModal({ isOpen, onClose }: AgentRegistr
             <Label htmlFor="email">Email</Label>
             <Input
               id="email"
-              value={email}
+              name="email"
+              value={formData.email}
               onChange={(e) => {
-                setEmail(e.target.value)
+                setFormData({ ...formData, email: e.target.value })
                 validateEmail(e.target.value)
               }}
               placeholder="Enter agent email"
@@ -137,10 +157,11 @@ export default function AgentRegistrationModal({ isOpen, onClose }: AgentRegistr
               <Label htmlFor="addedToday">Added Today</Label>
               <Input
                 id="addedToday"
+                name="addedToday"
                 type="number"
                 min="0"
-                value={addedToday}
-                onChange={(e) => setAddedToday(Number(e.target.value))}
+                value={formData.addedToday}
+                onChange={handleInputChange}
                 placeholder="0"
               />
             </div>
@@ -149,10 +170,11 @@ export default function AgentRegistrationModal({ isOpen, onClose }: AgentRegistr
               <Label htmlFor="monthlyAdded">Monthly Added</Label>
               <Input
                 id="monthlyAdded"
+                name="monthlyAdded"
                 type="number"
                 min="0"
-                value={monthlyAdded}
-                onChange={(e) => setMonthlyAdded(Number(e.target.value))}
+                value={formData.monthlyAdded}
+                onChange={handleInputChange}
                 placeholder="0"
               />
             </div>
@@ -163,24 +185,40 @@ export default function AgentRegistrationModal({ isOpen, onClose }: AgentRegistr
               <Label htmlFor="openAccounts">Open Accounts</Label>
               <Input
                 id="openAccounts"
+                name="openAccounts"
                 type="number"
                 min="0"
-                value={openAccounts}
-                onChange={(e) => setOpenAccounts(Number(e.target.value))}
+                value={formData.openAccounts}
+                onChange={handleInputChange}
                 placeholder="0"
               />
             </div>
+
+            {/* Other form fields... */}
 
             <div className="space-y-2">
               <Label htmlFor="totalDeposits">Total Deposits ($)</Label>
               <Input
                 id="totalDeposits"
+                name="totalDeposits"
                 type="number"
                 min="0"
-                step="0.01"
-                value={totalDeposits}
-                onChange={(e) => setTotalDeposits(Number(e.target.value))}
-                placeholder="0.00"
+                value={formData.totalDeposits}
+                onChange={handleInputChange}
+                placeholder="0"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="totalWithdrawals">Total Withdrawals ($)</Label>
+              <Input
+                id="totalWithdrawals"
+                name="totalWithdrawals"
+                type="number"
+                min="0"
+                value={formData.totalWithdrawals}
+                onChange={handleInputChange}
+                placeholder="0"
               />
             </div>
           </div>

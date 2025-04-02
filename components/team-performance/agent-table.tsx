@@ -37,6 +37,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 
+import "./agent-table.css"
+
 export default function AgentTable() {
   const { agents, updateAgent, deleteAgent } = useTeamContext()
   const { isViewer, isAdmin } = useAuth()
@@ -109,8 +111,17 @@ export default function AgentTable() {
     const isEditable =
       // For viewers: only these specific fields are editable
       (isViewer && (field === "addedToday" || field === "monthlyAdded" || field === "openAccounts")) ||
-      // For non-viewers (admins/editors): all these fields are editable
+      // For admins: all these fields are editable including totalDeposits and totalWithdrawals
+      (isAdmin &&
+        (field === "name" ||
+          field === "addedToday" ||
+          field === "monthlyAdded" ||
+          field === "openAccounts" ||
+          field === "totalDeposits" ||
+          field === "totalWithdrawals")) ||
+      // For non-viewers (editors): these fields are editable
       (!isViewer &&
+        !isAdmin &&
         (field === "name" || field === "addedToday" || field === "monthlyAdded" || field === "openAccounts"))
 
     if (isEditable) {
@@ -312,8 +323,17 @@ export default function AgentTable() {
     const isEditable =
       // For viewers: only these specific fields are editable
       (isViewer && (field === "addedToday" || field === "monthlyAdded" || field === "openAccounts")) ||
-      // For non-viewers (admins/editors): all these fields are editable
+      // For admins: all these fields are editable including totalDeposits and totalWithdrawals
+      (isAdmin &&
+        (field === "name" ||
+          field === "addedToday" ||
+          field === "monthlyAdded" ||
+          field === "openAccounts" ||
+          field === "totalDeposits" ||
+          field === "totalWithdrawals")) ||
+      // For non-viewers (editors): these fields are editable
       (!isViewer &&
+        !isAdmin &&
         (field === "name" || field === "addedToday" || field === "monthlyAdded" || field === "openAccounts"))
 
     if (isEditing) {
@@ -352,7 +372,13 @@ export default function AgentTable() {
 
     return (
       <div className="flex items-center justify-center group">
-        <span className={field === "name" ? "font-medium" : ""}>{field === "name" ? value : value}</span>
+        <span className={field === "name" ? "font-medium" : ""}>
+          {field === "name"
+            ? value
+            : field === "totalDeposits" || field === "totalWithdrawals"
+              ? `$${Number(value).toLocaleString()}`
+              : value}
+        </span>
         {isEditable && (
           <TooltipProvider>
             <Tooltip>
@@ -361,7 +387,7 @@ export default function AgentTable() {
                   variant="ghost"
                   size="icon"
                   onClick={() => handleCellEditClick(agent.id, field, value)}
-                  className="h-7 w-7 opacity-100 ml-2"
+                  className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity ml-2"
                 >
                   <Edit className="h-3.5 w-3.5 text-muted-foreground" />
                 </Button>
@@ -517,6 +543,18 @@ export default function AgentTable() {
               </TableHead>
               <TableHead
                 className="cursor-pointer font-medium text-center"
+                onClick={() => handleSort("totalWithdrawals")}
+              >
+                Total Withdrawals
+                {sortField === "totalWithdrawals" &&
+                  (sortDirection === "asc" ? (
+                    <ChevronUp className="ml-1 h-4 w-4 inline" />
+                  ) : (
+                    <ChevronDown className="ml-1 h-4 w-4 inline" />
+                  ))}
+              </TableHead>
+              <TableHead
+                className="cursor-pointer font-medium text-center"
                 onClick={() => handleSort("commissionRate")}
               >
                 Commission
@@ -560,8 +598,19 @@ export default function AgentTable() {
                   <TableCell className="editable-cell text-center">
                     {renderEditableCell(agent, "openAccounts", agent.openAccounts)}
                   </TableCell>
-                  <TableCell className={`${isViewer ? "" : "editable-cell"} text-center`}>
-                    <span className="font-medium">${agent.totalDeposits.toLocaleString()}</span>
+                  <TableCell className={`${isAdmin ? "editable-cell" : ""} text-center`}>
+                    {isAdmin ? (
+                      renderEditableCell(agent, "totalDeposits", agent.totalDeposits)
+                    ) : (
+                      <span className="font-medium">${agent.totalDeposits.toLocaleString()}</span>
+                    )}
+                  </TableCell>
+                  <TableCell className={`${isAdmin ? "editable-cell" : ""} text-center`}>
+                    {isAdmin ? (
+                      renderEditableCell(agent, "totalWithdrawals", agent.totalWithdrawals || 0)
+                    ) : (
+                      <span className="font-medium">${(agent.totalWithdrawals || 0).toLocaleString()}</span>
+                    )}
                   </TableCell>
                   <TableCell className="text-center">
                     <div className="flex justify-center">
@@ -594,7 +643,7 @@ export default function AgentTable() {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={!isViewer ? 8 : 7} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={!isViewer ? 9 : 8} className="text-center py-8 text-muted-foreground">
                   No agents found
                 </TableCell>
               </TableRow>

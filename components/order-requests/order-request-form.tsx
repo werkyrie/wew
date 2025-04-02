@@ -4,6 +4,7 @@ import type React from "react"
 
 import { useState, useEffect } from "react"
 import { useClientContext } from "@/context/client-context"
+import { useNotificationContext } from "@/context/notification-context"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -30,6 +31,7 @@ import { useToast } from "@/hooks/use-toast"
 export default function OrderRequestForm() {
   const { clients, addOrderRequest } = useClientContext()
   const { toast } = useToast()
+  const { addNotification } = useNotificationContext()
 
   // Form state
   const [shopId, setShopId] = useState("")
@@ -155,6 +157,14 @@ export default function OrderRequestForm() {
       location,
       price: numericPrice,
       remarks,
+    })
+
+    // Create notification for administrators
+    addNotification({
+      type: "info",
+      title: "New Order Request",
+      message: `${clientName} (${shopId}) has submitted a new order request for ${location} worth $${numericPrice.toFixed(2)}`,
+      link: "/order-requests",
     })
 
     // Reset form

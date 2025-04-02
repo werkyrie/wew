@@ -5,6 +5,7 @@ import type React from "react"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/context/auth-context"
+import { useClientContext } from "@/context/client-context"
 import { Button } from "@/components/ui/button"
 import { ModeToggle } from "./mode-toggle"
 import NotificationCenter from "./notification/notification-center"
@@ -40,6 +41,10 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
   const [isSheetOpen, setIsSheetOpen] = useState(false)
   const router = useRouter()
   const { user, logout, isAdmin, isViewer } = useAuth()
+  const { orderRequests } = useClientContext()
+
+  // Calculate pending order requests
+  const pendingOrderRequests = orderRequests?.filter((request) => request.status === "Pending")?.length || 0
 
   // Check if mobile on mount and when window resizes
   useEffect(() => {
@@ -112,6 +117,14 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
     }
   }
 
+  // Create order request badge
+  const orderRequestBadge =
+    pendingOrderRequests > 0 ? (
+      <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">{pendingOrderRequests}</span>
+    ) : (
+      <span className="bg-gray-700 text-white text-xs px-1 rounded">New</span>
+    )
+
   // Mobile sidebar using Sheet component
   if (isMobile) {
     return (
@@ -174,7 +187,7 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
                       label="Order Requests"
                       active={activeTab === "order-requests"}
                       onClick={() => navigateTo("order-requests")}
-                      badge={<span className="bg-gray-700 text-white text-xs px-1 rounded">New</span>}
+                      badge={orderRequestBadge}
                     />
                     <MobileNavItem
                       icon={<Wallet className="h-5 w-5" />}
@@ -277,7 +290,7 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
               active={activeTab === "order-requests"}
               collapsed={false}
               onClick={() => navigateTo("order-requests")}
-              badge={<span className="bg-gray-700 text-white text-xs px-1 rounded">New</span>}
+              badge={orderRequestBadge}
             />
             <NavItem
               icon={<Wallet className="h-5 w-5" />}

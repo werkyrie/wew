@@ -12,6 +12,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Fingerprint, Mail, ArrowRight } from "lucide-react"
 import { motion } from "framer-motion"
+import "particles.js"
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
@@ -49,6 +50,96 @@ export default function LoginPage() {
       setErrorMessage("Your session has expired. Please log in again.")
     }
   }, [timeout])
+
+  // Initialize particles.js
+  useEffect(() => {
+    if (mounted && typeof window !== "undefined") {
+      const loadParticles = async () => {
+        try {
+          // @ts-ignore
+          if (!window.particlesJS) {
+            const particlesJS = await import("particles.js")
+            // Initialize particles
+            // @ts-ignore
+            window.particlesJS("particles-js", {
+              particles: {
+                number: { value: 80, density: { enable: true, value_area: 800 } },
+                color: { value: "#808080" },
+                shape: {
+                  type: "circle",
+                  stroke: { width: 0, color: "#000000" },
+                  polygon: { nb_sides: 5 },
+                },
+                opacity: {
+                  value: 0.3,
+                  random: false,
+                  anim: { enable: false, speed: 1, opacity_min: 0.1, sync: false },
+                },
+                size: {
+                  value: 3,
+                  random: true,
+                  anim: { enable: false, speed: 40, size_min: 0.1, sync: false },
+                },
+                line_linked: {
+                  enable: true,
+                  distance: 150,
+                  color: "#808080",
+                  opacity: 0.2,
+                  width: 1,
+                },
+                move: {
+                  enable: true,
+                  speed: 2,
+                  direction: "none",
+                  random: false,
+                  straight: false,
+                  out_mode: "out",
+                  bounce: false,
+                  attract: { enable: false, rotateX: 600, rotateY: 1200 },
+                },
+              },
+              interactivity: {
+                detect_on: "canvas",
+                events: {
+                  onhover: { enable: true, mode: "grab" },
+                  onclick: { enable: true, mode: "push" },
+                  resize: true,
+                },
+                modes: {
+                  grab: { distance: 140, line_linked: { opacity: 0.5 } },
+                  bubble: { distance: 400, size: 40, duration: 2, opacity: 8, speed: 3 },
+                  repulse: { distance: 200, duration: 0.4 },
+                  push: { particles_nb: 4 },
+                  remove: { particles_nb: 2 },
+                },
+              },
+              retina_detect: true,
+            })
+          }
+        } catch (error) {
+          console.error("Failed to load particles.js", error)
+        }
+      }
+
+      loadParticles()
+
+      // Add mouse move effect for the card
+      const card = document.querySelector(".login-card")
+      if (card) {
+        document.addEventListener("mousemove", (e) => {
+          const x = e.clientX / window.innerWidth
+          const y = e.clientY / window.innerHeight
+
+          // Subtle rotation effect
+          card.style.transform = `perspective(1000px) rotateY(${(x - 0.5) * 5}deg) rotateX(${(y - 0.5) * -5}deg)`
+        })
+      }
+
+      return () => {
+        document.removeEventListener("mousemove", () => {})
+      }
+    }
+  }, [mounted])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -111,41 +202,20 @@ export default function LoginPage() {
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
       <div className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden p-4">
         {/* Background gradient and pattern */}
-        <div className="absolute inset-0 bg-gradient-to-br from-black via-gray-800 to-gray-900 z-0">
+        <div className="absolute inset-0 bg-gradient-to-br from-gray-100 via-gray-200 to-gray-300 dark:from-gray-800 dark:via-gray-900 dark:to-black z-0">
           <div className="absolute inset-0 bg-grid-white/[0.05] bg-[length:20px_20px]" />
           <div className="absolute inset-0 backdrop-blur-[100px]" />
 
           {/* Animated background blobs */}
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-gray-500 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob" />
-          <div className="absolute top-1/3 right-1/4 w-96 h-96 bg-gray-700 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000" />
-          <div className="absolute bottom-1/4 left-1/3 w-96 h-96 bg-gray-600 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-4000" />
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-gray-300 dark:bg-gray-600 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob" />
+          <div className="absolute top-1/3 right-1/4 w-96 h-96 bg-gray-400 dark:bg-gray-700 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000" />
+          <div className="absolute bottom-1/4 left-1/3 w-96 h-96 bg-gray-200 dark:bg-gray-500 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-4000" />
         </div>
 
-        {mounted && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5 }}
-            className="w-full max-w-md text-center text-white mb-8 z-10"
-          >
-            <motion.h1
-              initial={{ y: -20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.2, type: "spring", stiffness: 300, damping: 24 }}
-              className="text-4xl font-bold mb-2"
-            >
-              Client Management System
-            </motion.h1>
-            <motion.p
-              initial={{ y: -20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.3, type: "spring", stiffness: 300, damping: 24 }}
-              className="text-white/80 text-lg"
-            >
-              Streamline your client operations with our powerful management tools
-            </motion.p>
-          </motion.div>
-        )}
+        {/* Interactive particles */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div id="particles-js" className="absolute inset-0"></div>
+        </div>
 
         {mounted && (
           <motion.div
@@ -154,7 +224,7 @@ export default function LoginPage() {
             transition={{ delay: 0.4, duration: 0.5 }}
             className="w-full max-w-md z-10"
           >
-            <Card className="backdrop-blur-xl bg-white/10 border border-white/20 shadow-xl shadow-purple-500/30 rounded-2xl">
+            <Card className="login-card backdrop-blur-xl bg-white/80 dark:bg-gray-900/80 border border-gray-200 dark:border-gray-700 shadow-xl shadow-gray-300/30 dark:shadow-black/30 rounded-2xl transition-transform duration-300 ease-out">
               <CardHeader className="space-y-1 text-center">
                 <motion.div
                   initial={{ scale: 0.8, opacity: 0 }}
@@ -167,12 +237,12 @@ export default function LoginPage() {
                   }}
                   className="flex justify-center mb-4"
                 >
-                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-gray-700 to-black flex items-center justify-center shadow-lg">
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-gray-200 to-gray-400 dark:from-gray-700 dark:to-gray-900 flex items-center justify-center shadow-lg">
                     <Fingerprint className="h-8 w-8 text-white" />
                   </div>
                 </motion.div>
-                <CardTitle className="text-2xl font-bold text-white">Welcome Back</CardTitle>
-                <CardDescription className="text-white/70">
+                <CardTitle className="text-2xl font-bold text-gray-800 dark:text-white">Welcome Back</CardTitle>
+                <CardDescription className="text-gray-600 dark:text-gray-300">
                   Enter your credentials to access your account
                 </CardDescription>
               </CardHeader>
@@ -199,18 +269,18 @@ export default function LoginPage() {
                   animate="visible"
                 >
                   <motion.div className="space-y-2" variants={itemVariants}>
-                    <Label htmlFor="email" className="text-sm font-medium text-white">
+                    <Label htmlFor="email" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                       Email
                     </Label>
                     <div className="relative group">
-                      <Mail className="absolute left-3 top-3 h-4 w-4 text-white/50 group-hover:text-white/70 transition-colors" />
+                      <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400 group-hover:text-gray-600 dark:text-gray-500 dark:group-hover:text-gray-300 transition-colors" />
                       <Input
                         id="email"
                         type="email"
-                        placeholder="your.email@example.com"
+                        placeholder="Email address"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-purple-400 focus:ring-purple-400/30"
+                        className="pl-10 bg-white dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 text-gray-800 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-gray-400 focus:ring-gray-400/30 dark:focus:border-gray-600 dark:focus:ring-gray-600/30"
                         required
                       />
                     </div>
@@ -218,25 +288,25 @@ export default function LoginPage() {
 
                   <motion.div className="space-y-2" variants={itemVariants}>
                     <div className="flex items-center justify-between">
-                      <Label htmlFor="password" className="text-sm font-medium text-white">
+                      <Label htmlFor="password" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                         Password
                       </Label>
                       <Button
                         variant="link"
-                        className="p-0 h-auto text-xs text-gray-300 hover:text-white"
+                        className="p-0 h-auto text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                         type="button"
                       >
                         Forgot password?
                       </Button>
                     </div>
                     <div className="relative group">
-                      <Fingerprint className="absolute left-3 top-3 h-4 w-4 text-white/50 group-hover:text-white/70 transition-colors" />
+                      <Fingerprint className="absolute left-3 top-3 h-4 w-4 text-gray-400 group-hover:text-gray-600 dark:text-gray-500 dark:group-hover:text-gray-300 transition-colors" />
                       <Input
                         id="password"
                         type="password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-purple-400 focus:ring-purple-400/30"
+                        className="pl-10 bg-white dark:bg-gray-800/50 border-gray-200 dark:border-gray-700 text-gray-800 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:border-gray-400 focus:ring-gray-400/30 dark:focus:border-gray-600 dark:focus:ring-gray-600/30"
                         required
                       />
                     </div>
@@ -245,7 +315,7 @@ export default function LoginPage() {
                   <motion.div variants={buttonVariants} whileHover="hover">
                     <Button
                       type="submit"
-                      className="w-full py-6 text-base font-medium bg-gradient-to-r from-gray-700 via-gray-800 to-black hover:from-gray-800 hover:via-gray-900 hover:to-black text-white transition-all duration-300 rounded-xl shadow-lg hover:shadow-black/40 group"
+                      className="w-full py-6 text-base font-medium bg-gradient-to-r from-gray-100 via-gray-200 to-gray-300 hover:from-gray-200 hover:via-gray-300 hover:to-gray-400 dark:from-gray-700 dark:via-gray-800 dark:to-gray-900 dark:hover:from-gray-800 dark:hover:via-gray-900 dark:hover:to-black text-gray-800 dark:text-white transition-all duration-300 rounded-xl shadow-lg hover:shadow-gray-400/40 dark:hover:shadow-black/40 group"
                       disabled={isLoading}
                     >
                       {isLoading ? (
@@ -282,8 +352,8 @@ export default function LoginPage() {
                 </motion.form>
               </CardContent>
 
-              <CardFooter className="flex justify-center border-t border-white/10 p-6">
-                <p className="text-sm text-white/60">Need help? Contact your system administrator</p>
+              <CardFooter className="flex justify-center border-t border-gray-200 dark:border-gray-700/50 p-6">
+                <p className="text-sm text-gray-500 dark:text-gray-400">Need help? Contact your system administrator</p>
               </CardFooter>
             </Card>
           </motion.div>
@@ -294,7 +364,7 @@ export default function LoginPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.8, duration: 0.5 }}
-            className="mt-8 text-sm text-white/70 z-10"
+            className="mt-8 text-sm text-gray-500 dark:text-gray-400 z-10"
           >
             © {new Date().getFullYear()} Client Management System. All rights reserved.
           </motion.div>
