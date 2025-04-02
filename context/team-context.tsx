@@ -1,9 +1,18 @@
 "use client"
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
-import type { Agent, Penalty, Reward, TeamMetrics, Attendance } from "@/types/team"
+import type { Agent, Penalty, Reward, Attendance } from "@/types/team"
 import { db } from "@/lib/firebase"
 import { collection, addDoc, updateDoc, deleteDoc, doc, getDocs, query, where, onSnapshot } from "firebase/firestore"
+
+export interface TeamMetrics {
+  totalAgents: number
+  totalAddedToday: number
+  totalMonthlyAdded: number
+  totalOpenAccounts: number
+  totalDeposits: number
+  totalWithdrawals: number
+}
 
 interface TeamContextType {
   agents: Agent[]
@@ -23,7 +32,7 @@ interface TeamContextType {
   addAttendance: (attendance: Omit<Attendance, "id">) => Promise<void>
   updateAttendance: (attendance: Attendance) => Promise<void>
   deleteAttendance: (id: string) => Promise<void>
-  calculateCommission: (depositAmount: number) => { rate: number; amount: number }
+  calculateCommission: (depositAmount: number, withdrawalAmount: number) => { rate: number; amount: number }
 }
 
 const TeamContext = createContext<TeamContextType | undefined>(undefined)
@@ -39,6 +48,7 @@ export function TeamProvider({ children }: { children: ReactNode }) {
     totalMonthlyAdded: 0,
     totalOpenAccounts: 0,
     totalDeposits: 0,
+    totalWithdrawals: 0,
   })
 
   // Load data from Firebase on initial render
@@ -111,6 +121,7 @@ export function TeamProvider({ children }: { children: ReactNode }) {
     const totalMonthlyAdded = agents.reduce((sum, agent) => sum + (agent.monthlyAdded || 0), 0)
     const totalOpenAccounts = agents.reduce((sum, agent) => sum + (agent.openAccounts || 0), 0)
     const totalDeposits = agents.reduce((sum, agent) => sum + (agent.totalDeposits || 0), 0)
+    const totalWithdrawals = agents.reduce((sum, agent) => sum + (agent.totalWithdrawals || 0), 0)
 
     setMetrics({
       totalAgents,
@@ -118,26 +129,28 @@ export function TeamProvider({ children }: { children: ReactNode }) {
       totalMonthlyAdded,
       totalOpenAccounts,
       totalDeposits,
+      totalWithdrawals,
     })
   }, [agents])
 
   // Calculate commission based on deposit amount
-  const calculateCommission = (depositAmount: number) => {
+  const calculateCommission = (depositAmount: number, withdrawalAmount: number) => {
     let rate = 0
+    const netAmount = depositAmount - withdrawalAmount
 
-    if (depositAmount >= 100000) {
+    if (netAmount >= 100000) {
       rate = 0.1 // 10%
-    } else if (depositAmount >= 50000) {
+    } else if (netAmount >= 50000) {
       rate = 0.09 // 9%
-    } else if (depositAmount >= 20000) {
+    } else if (netAmount >= 20000) {
       rate = 0.07 // 7%
-    } else if (depositAmount >= 10000) {
+    } else if (netAmount >= 10000) {
       rate = 0.05 // 5%
-    } else if (depositAmount >= 1000) {
+    } else if (netAmount >= 1000) {
       rate = 0.04 // 4%
     }
 
-    const amount = depositAmount * rate
+    const amount = netAmount * rate
 
     return { rate, amount }
   }
@@ -146,7 +159,7 @@ export function TeamProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const updateAgentsWithCommission = async () => {
       const updatedAgents = agents.map((agent) => {
-        const { rate, amount } = calculateCommission(agent.totalDeposits || 0)
+        const { rate, amount } = calculateCommission(agent.totalDeposits || 0, agent.totalWithdrawals || 0)
         return {
           ...agent,
           commission: amount,
@@ -180,9 +193,10 @@ export function TeamProvider({ children }: { children: ReactNode }) {
   // Agent CRUD operations
   const addAgent = async (agent: Omit<Agent, "id" | "commission" | "commissionRate">) => {
     try {
-      const { rate, amount } = calculateCommission(agent.totalDeposits || 0)
+      const { rate, amount } = calculateCommission(agent.totalDeposits || 0, agent.totalWithdrawals || 0)
       const newAgent = {
         ...agent,
+        totalWithdrawals: agent.totalWithdrawals || 0,
         commission: amount,
         commissionRate: rate * 100,
       }
@@ -202,11 +216,12 @@ export function TeamProvider({ children }: { children: ReactNode }) {
       const newAgent: Agent = {
         ...agent,
         id: Math.random().toString(36).substring(2, 9),
+        totalWithdrawals: agent.totalWithdrawals || 0,
         commission: 0,
         commissionRate: 0,
       }
 
-      const { rate, amount } = calculateCommission(newAgent.totalDeposits || 0)
+      const { rate, amount } = calculateCommission(newAgent.totalDeposits || 0, newAgent.totalWithdrawals || 0)
       newAgent.commission = amount
       newAgent.commissionRate = rate * 100
 

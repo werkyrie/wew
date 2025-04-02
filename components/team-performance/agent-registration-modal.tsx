@@ -1,5 +1,7 @@
 "use client"
 
+import type React from "react"
+
 import { useState } from "react"
 import { useTeamContext } from "@/context/team-context"
 import { Button } from "@/components/ui/button"
@@ -25,13 +27,21 @@ export default function AgentRegistrationModal({ isOpen, onClose }: AgentRegistr
   const { addAgent } = useTeamContext()
   const { toast } = useToast()
 
-  const [name, setName] = useState("")
-  const [addedToday, setAddedToday] = useState(0)
-  const [monthlyAdded, setMonthlyAdded] = useState(0)
-  const [openAccounts, setOpenAccounts] = useState(0)
-  const [totalDeposits, setTotalDeposits] = useState(0)
-
   const [nameError, setNameError] = useState("")
+
+  const [formData, setFormData] = useState({
+    name: "",
+    addedToday: 0,
+    monthlyAdded: 0,
+    openAccounts: 0,
+    totalDeposits: 0,
+    totalWithdrawals: 0,
+    email: "",
+    phone: "",
+    position: "",
+    joinDate: new Date().toISOString().split("T")[0],
+    status: "Active" as "Active" | "Inactive",
+  })
 
   const validateName = (value: string) => {
     if (!value.trim()) {
@@ -43,24 +53,39 @@ export default function AgentRegistrationModal({ isOpen, onClose }: AgentRegistr
   }
 
   const handleSubmit = () => {
-    if (!validateName(name)) {
+    if (!validateName(formData.name)) {
       return
     }
 
     addAgent({
-      name,
-      addedToday,
-      monthlyAdded,
-      openAccounts,
-      totalDeposits,
+      name: formData.name,
+      addedToday: formData.addedToday,
+      monthlyAdded: formData.monthlyAdded,
+      openAccounts: formData.openAccounts,
+      totalDeposits: formData.totalDeposits,
     })
 
     toast({
       title: "Agent Added",
-      description: `${name} has been added successfully`,
+      description: `${formData.name} has been added successfully`,
     })
 
     onClose()
+  }
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target
+    setFormData({
+      ...formData,
+      [name]:
+        name === "addedToday" ||
+        name === "monthlyAdded" ||
+        name === "openAccounts" ||
+        name === "totalDeposits" ||
+        name === "totalWithdrawals"
+          ? Number(value)
+          : value,
+    })
   }
 
   return (
@@ -76,9 +101,10 @@ export default function AgentRegistrationModal({ isOpen, onClose }: AgentRegistr
             <Label htmlFor="name">Agent Name</Label>
             <Input
               id="name"
-              value={name}
+              name="name"
+              value={formData.name}
               onChange={(e) => {
-                setName(e.target.value)
+                handleInputChange(e)
                 validateName(e.target.value)
               }}
               placeholder="Enter agent name"
@@ -97,10 +123,11 @@ export default function AgentRegistrationModal({ isOpen, onClose }: AgentRegistr
               <Label htmlFor="addedToday">Added Today</Label>
               <Input
                 id="addedToday"
+                name="addedToday"
                 type="number"
                 min="0"
-                value={addedToday}
-                onChange={(e) => setAddedToday(Number(e.target.value))}
+                value={formData.addedToday}
+                onChange={handleInputChange}
                 placeholder="0"
               />
             </div>
@@ -109,10 +136,11 @@ export default function AgentRegistrationModal({ isOpen, onClose }: AgentRegistr
               <Label htmlFor="monthlyAdded">Monthly Added</Label>
               <Input
                 id="monthlyAdded"
+                name="monthlyAdded"
                 type="number"
                 min="0"
-                value={monthlyAdded}
-                onChange={(e) => setMonthlyAdded(Number(e.target.value))}
+                value={formData.monthlyAdded}
+                onChange={handleInputChange}
                 placeholder="0"
               />
             </div>
@@ -123,10 +151,11 @@ export default function AgentRegistrationModal({ isOpen, onClose }: AgentRegistr
               <Label htmlFor="openAccounts">Open Accounts</Label>
               <Input
                 id="openAccounts"
+                name="openAccounts"
                 type="number"
                 min="0"
-                value={openAccounts}
-                onChange={(e) => setOpenAccounts(Number(e.target.value))}
+                value={formData.openAccounts}
+                onChange={handleInputChange}
                 placeholder="0"
               />
             </div>
@@ -135,11 +164,28 @@ export default function AgentRegistrationModal({ isOpen, onClose }: AgentRegistr
               <Label htmlFor="totalDeposits">Total Deposits ($)</Label>
               <Input
                 id="totalDeposits"
+                name="totalDeposits"
                 type="number"
                 min="0"
                 step="0.01"
-                value={totalDeposits}
-                onChange={(e) => setTotalDeposits(Number(e.target.value))}
+                value={formData.totalDeposits}
+                onChange={handleInputChange}
+                placeholder="0.00"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="totalWithdrawals">Total Withdrawals ($)</Label>
+              <Input
+                id="totalWithdrawals"
+                name="totalWithdrawals"
+                type="number"
+                min="0"
+                step="0.01"
+                value={formData.totalWithdrawals}
+                onChange={handleInputChange}
                 placeholder="0.00"
               />
             </div>

@@ -6,8 +6,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Progress } from "@/components/ui/progress"
-import { Trophy } from "lucide-react"
+import { Trophy, Calendar } from "lucide-react"
 import { useTheme } from "next-themes"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { format, subMonths, startOfMonth, endOfMonth } from "date-fns"
 
 interface AgentStat {
   agent: string
@@ -22,13 +24,53 @@ export default function TopAgentsCard() {
   const { theme } = useTheme()
   const isDark = theme === "dark"
 
+  // Month filter state
+  const [selectedMonth, setSelectedMonth] = useState<string>("all")
+
+  // Generate last 12 months for the filter
+  const getMonthOptions = () => {
+    const options = []
+    const today = new Date()
+
+    for (let i = 0; i < 12; i++) {
+      const date = subMonths(today, i)
+      const value = format(date, "yyyy-MM")
+      const label = format(date, "MMMM yyyy")
+      options.push({ value, label })
+    }
+
+    return options
+  }
+
+  const monthOptions = getMonthOptions()
+
   useEffect(() => {
     if (clients.length === 0) return
+
+    // Filter deposits by selected month if needed
+    let filteredDeposits = [...deposits]
+    let filteredClients = [...clients]
+
+    if (selectedMonth !== "all") {
+      const [year, month] = selectedMonth.split("-").map(Number)
+      const startDate = startOfMonth(new Date(year, month - 1))
+      const endDate = endOfMonth(new Date(year, month - 1))
+
+      filteredDeposits = deposits.filter((deposit) => {
+        const depositDate = new Date(deposit.date)
+        return depositDate >= startDate && depositDate <= endDate
+      })
+
+      filteredClients = clients.filter((client) => {
+        const kycDate = new Date(client.kycDate || client.registrationDate) // Fallback to registration date if KYC date is not available
+        return kycDate >= startDate && kycDate <= endDate
+      })
+    }
 
     // Calculate top agents by deposits
     const agentDeposits: Record<string, number> = {}
 
-    deposits.forEach((deposit) => {
+    filteredDeposits.forEach((deposit) => {
       if (!agentDeposits[deposit.agent]) {
         agentDeposits[deposit.agent] = 0
       }
@@ -50,10 +92,10 @@ export default function TopAgentsCard() {
       })),
     )
 
-    // Calculate top agents by number of clients
+    // Calculate top agents by number of clients (based on KYC date)
     const agentClients: Record<string, number> = {}
 
-    clients.forEach((client) => {
+    filteredClients.forEach((client) => {
       if (!agentClients[client.agent]) {
         agentClients[client.agent] = 0
       }
@@ -74,7 +116,7 @@ export default function TopAgentsCard() {
         percentage: maxClients > 0 ? (item.value / maxClients) * 100 : 0,
       })),
     )
-  }, [clients, deposits])
+  }, [clients, deposits, selectedMonth])
 
   // Generate a consistent color based on agent name
   const getAgentColor = (agent: string) => {
@@ -96,14 +138,40 @@ export default function TopAgentsCard() {
     return colors[hash % colors.length]
   }
 
+  const handleMonthChange = (value: string) => {
+    setSelectedMonth(value)
+  }
+
   return (
     <Card className="dashboard-card">
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center">
-          <Trophy className="h-5 w-5 text-yellow-500 mr-2" />
-          Top Performing Agents
-        </CardTitle>
-        <CardDescription>Agent performance metrics</CardDescription>
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center">
+            <Trophy className="h-5 w-5 text-yellow-500 mr-2" />
+            <CardTitle className="text-xl">Top Performing Agents</CardTitle>
+          </div>
+          <div className="flex items-center">
+            <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
+            <Select value={selectedMonth} onValueChange={handleMonthChange}>
+              <SelectTrigger className="w-[180px] h-8">
+                <SelectValue placeholder="Filter by month" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Time</SelectItem>
+                {monthOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <CardDescription>
+          {selectedMonth === "all"
+            ? "Agent performance metrics (all time)"
+            : `Agent performance for ${monthOptions.find((m) => m.value === selectedMonth)?.label}`}
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="deposits" className="w-full">
@@ -119,15 +187,15 @@ export default function TopAgentsCard() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <div className="relative">
-                        <Avatar className="h-8 w-8 border-2 border-background">
+                        <Avatar className="h-10 w-10 border-2 border-background">
                           <AvatarFallback className={getAgentColor(agent.agent)}>
                             {agent.agent.substring(0, 2)}
                           </AvatarFallback>
                         </Avatar>
                         {index < 3 && (
-                          <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-background">
+                          <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-background">
                             <span
-                              className={`text-[10px] font-bold ${
+                              className={`text-xs font-bold ${
                                 index === 0 ? "text-yellow-500" : index === 1 ? "text-gray-400" : "text-amber-700"
                               }`}
                             >
@@ -137,17 +205,17 @@ export default function TopAgentsCard() {
                         )}
                       </div>
                       <div>
-                        <p className="text-sm font-medium">{agent.agent}</p>
+                        <p className="text-base font-medium">{agent.agent}</p>
                       </div>
                     </div>
-                    <p className="text-sm font-semibold">${agent.value.toFixed(2)}</p>
+                    <p className="text-base font-semibold">${agent.value.toFixed(2)}</p>
                   </div>
-                  <Progress value={agent.percentage} className="h-2 progress-bar-animate" />
+                  <Progress value={agent.percentage} className="h-3 progress-bar-animate" />
                 </div>
               ))
             ) : (
               <div className="py-8 text-center text-muted-foreground">
-                <p>No deposit data available</p>
+                <p>No deposit data available for this period</p>
               </div>
             )}
           </TabsContent>
@@ -159,15 +227,15 @@ export default function TopAgentsCard() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <div className="relative">
-                        <Avatar className="h-8 w-8 border-2 border-background">
+                        <Avatar className="h-10 w-10 border-2 border-background">
                           <AvatarFallback className={getAgentColor(agent.agent)}>
                             {agent.agent.substring(0, 2)}
                           </AvatarFallback>
                         </Avatar>
                         {index < 3 && (
-                          <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-background">
+                          <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-background">
                             <span
-                              className={`text-[10px] font-bold ${
+                              className={`text-xs font-bold ${
                                 index === 0 ? "text-yellow-500" : index === 1 ? "text-gray-400" : "text-amber-700"
                               }`}
                             >
@@ -177,17 +245,17 @@ export default function TopAgentsCard() {
                         )}
                       </div>
                       <div>
-                        <p className="text-sm font-medium">{agent.agent}</p>
+                        <p className="text-base font-medium">{agent.agent}</p>
                       </div>
                     </div>
-                    <p className="text-sm font-semibold">{agent.value} clients</p>
+                    <p className="text-base font-semibold">{agent.value} clients</p>
                   </div>
-                  <Progress value={agent.percentage} className="h-2 progress-bar-animate" />
+                  <Progress value={agent.percentage} className="h-3 progress-bar-animate" />
                 </div>
               ))
             ) : (
               <div className="py-8 text-center text-muted-foreground">
-                <p>No client data available</p>
+                <p>No client data available for this period</p>
               </div>
             )}
           </TabsContent>

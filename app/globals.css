@@ -328,7 +328,7 @@
 
 .editable-cell:hover::after {
   content: "";
-  @apply absolute inset-0 border border-dashed border-primary/50 rounded pointer-events-none;
+  @apply absolute inset-0 border border-dashed border-primary/30 rounded pointer-events-none;
 }
 
 .editable-cell-input {
@@ -344,26 +344,31 @@
   @apply transition-colors duration-200 hover:bg-muted/50 cursor-pointer;
 }
 
+.agent-row td {
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+}
+
 .agent-row.editing {
   @apply bg-primary/5;
 }
 
 .commission-tier-0 {
-  @apply text-gray-500;
+  @apply text-gray-600 font-medium;
 }
 .commission-tier-4 {
-  @apply text-blue-500;
+  @apply text-blue-600 font-medium;
 }
 .commission-tier-5 {
-  @apply text-green-500;
+  @apply text-green-600 font-medium;
 }
 .commission-tier-7 {
-  @apply text-indigo-500;
+  @apply text-indigo-600 font-medium;
 }
 .commission-tier-9 {
-  @apply text-purple-500;
+  @apply text-purple-600 font-medium;
 }
 .commission-tier-10 {
-  @apply text-amber-500;
+  @apply text-amber-600 font-medium;
 }
 
