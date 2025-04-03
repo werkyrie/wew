@@ -193,7 +193,7 @@ export default function LoginPage() {
     },
     hover: {
       scale: 1.03,
-      boxShadow: "0 10px 25px -5px rgba(124, 58, 237, 0.5)",
+      boxShadow: "0 10px 25px -5px rgba(30, 26, 37, 0.5)",
       transition: { type: "spring", stiffness: 400, damping: 10 },
     },
   }
@@ -315,12 +315,14 @@ export default function LoginPage() {
                         Password
                       </Label>
                       <Button
-                        variant="link"
-                        className="p-0 h-auto text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                        type="button"
-                      >
-                        Forgot password?
-                      </Button>
+  variant="link"
+  className="p-0 h-auto text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+  asChild
+>
+  <a href="https://t.me/kyrrrie" target="_blank" rel="noopener noreferrer">
+    Forgot password?
+  </a>
+</Button>
                     </div>
                     <div className="relative group">
                       <Fingerprint className="absolute left-3 top-3 h-4 w-4 text-gray-400 group-hover:text-gray-600 dark:text-gray-500 dark:group-hover:text-gray-300 transition-colors" />
