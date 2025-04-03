@@ -13,6 +13,8 @@ export interface Agent {
   position?: string
   joinDate?: string
   status?: "Active" | "Inactive"
+  lastEditedBy?: string
+  lastEditedAt?: string
 }
 
 export interface Penalty {

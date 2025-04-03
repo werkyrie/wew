@@ -12,7 +12,7 @@ interface TeamContextType {
   attendance: Attendance[]
   metrics: TeamMetrics
   addAgent: (agent: Omit<Agent, "id" | "commission" | "commissionRate">) => Promise<Agent>
-  updateAgent: (agent: Agent) => Promise<void>
+  updateAgent: (agent: Agent, editorEmail?: string) => Promise<void>
   deleteAgent: (id: string) => Promise<void>
   addPenalty: (penalty: Omit<Penalty, "id">) => Promise<Penalty>
   updatePenalty: (penalty: Penalty) => Promise<void>
@@ -309,8 +309,20 @@ export function TeamProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const updateAgent = async (updatedAgent: Agent) => {
+  const updateAgent = async (updatedAgent: Agent, editorEmail?: string) => {
     try {
+      // If editor email is provided, extract the name and update lastEditedBy
+      if (editorEmail) {
+        const editorName = editorEmail.split("@")[0]
+        // Capitalize first letter
+        const formattedName = editorName.charAt(0).toUpperCase() + editorName.slice(1)
+        updatedAgent = {
+          ...updatedAgent,
+          lastEditedBy: formattedName,
+          lastEditedAt: new Date().toISOString(),
+        }
+      }
+
       // Update in Firebase
       const agentRef = doc(db, "agents", updatedAgent.id)
       await updateDoc(agentRef, { ...updatedAgent })

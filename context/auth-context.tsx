@@ -31,7 +31,11 @@ interface AuthContextType {
   isAuthenticated: boolean
   isAdmin: boolean
   isViewer: boolean
-  changePassword: (currentPassword: string, newPassword: string) => Promise<{ success: boolean; message: string }>
+  changePassword: (
+    email: string,
+    currentPassword: string,
+    newPassword: string,
+  ) => Promise<{ success: boolean; message: string }>
   resetPassword: (email: string) => Promise<{ success: boolean; message: string }>
   loginError: string | null
   loading: boolean
@@ -159,14 +163,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const changePassword = async (currentPassword: string, newPassword: string) => {
+  const changePassword = async (email: string, currentPassword: string, newPassword: string) => {
     try {
       if (!auth.currentUser || !user?.email) {
         return { success: false, message: "No user is currently logged in" }
       }
 
       // Re-authenticate user
-      await signInWithEmailAndPassword(auth, user.email, currentPassword)
+      await signInWithEmailAndPassword(auth, email || user.email, currentPassword)
 
       // Change password
       await updatePassword(auth.currentUser, newPassword)

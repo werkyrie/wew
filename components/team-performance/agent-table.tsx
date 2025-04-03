@@ -44,7 +44,7 @@ import "./agent-table.css"
 
 export default function AgentTable() {
   const { agents, updateAgent, deleteAgent } = useTeamContext()
-  const { isViewer, isAdmin } = useAuth()
+  const { isViewer, isAdmin, user } = useAuth()
   const { toast } = useToast()
   const [searchTerm, setSearchTerm] = useState("")
   const [filteredAgents, setFilteredAgents] = useState(agents)
@@ -159,7 +159,8 @@ export default function AgentTable() {
 
     // Update agent
     const updatedAgent = { ...agent, [editingCell.field]: value }
-    updateAgent(updatedAgent)
+    // Pass the user's email to record who made the edit
+    updateAgent(updatedAgent, user?.email)
 
     // Reset editing state
     setEditingCell(null)
@@ -642,6 +643,15 @@ export default function AgentTable() {
                     <ChevronDown className="ml-1 h-4 w-4 inline" />
                   ))}
               </TableHead>
+              <TableHead className="cursor-pointer font-medium text-center" onClick={() => handleSort("lastEditedBy")}>
+                Last Edited By
+                {sortField === "lastEditedBy" &&
+                  (sortDirection === "asc" ? (
+                    <ChevronUp className="ml-1 h-4 w-4 inline" />
+                  ) : (
+                    <ChevronDown className="ml-1 h-4 w-4 inline" />
+                  ))}
+              </TableHead>
               <TableHead className="text-center">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -697,6 +707,20 @@ export default function AgentTable() {
                     </div>
                   </TableCell>
                   <TableCell className="text-center">
+                    {agent.lastEditedBy ? (
+                      <div className="flex flex-col items-center justify-center">
+                        <span className="font-medium">{agent.lastEditedBy}</span>
+                        {agent.lastEditedAt && (
+                          <span className="text-xs text-muted-foreground">
+                            {new Date(agent.lastEditedAt).toLocaleDateString()}
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground text-sm">Not edited</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-center">
                     {!isViewer && (
                       <div className="flex justify-center">
                         <DropdownMenu>
@@ -720,7 +744,7 @@ export default function AgentTable() {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={!isViewer ? 9 : 8} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={!isViewer ? 10 : 9} className="text-center py-8 text-muted-foreground">
                   No agents found
                 </TableCell>
               </TableRow>

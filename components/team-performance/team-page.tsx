@@ -9,6 +9,7 @@ import AgentTable from "@/components/team-performance/agent-table"
 import PenaltiesTab from "@/components/team-performance/penalties-tab"
 import RewardsTab from "@/components/team-performance/rewards-tab"
 import AttendanceTab from "@/components/team-performance/attendance-tab"
+import { Users, AlertTriangle, Award, Calendar } from "lucide-react"
 
 export default function TeamPerformancePage() {
   const [activeTab, setActiveTab] = useState("overview")
@@ -27,46 +28,50 @@ export default function TeamPerformancePage() {
         </CardHeader>
         <CardContent className="p-0">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-4 p-1 bg-muted/20 rounded-none">
+            <TabsList className="grid w-full grid-cols-4 p-2 bg-muted/20 rounded-md gap-1 mb-1">
               <TabsTrigger
                 value="overview"
-                className="rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm"
+                className="rounded-md data-[state=active]:bg-background data-[state=active]:shadow-md data-[state=active]:border-b-2 data-[state=active]:border-primary transition-all duration-200 flex items-center justify-center gap-2 hover:bg-muted/50 py-2"
               >
+                <Users className="h-4 w-4" />
                 Agent Overview
               </TabsTrigger>
               <TabsTrigger
                 value="penalties"
-                className="rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm"
+                className="rounded-md data-[state=active]:bg-background data-[state=active]:shadow-md data-[state=active]:border-b-2 data-[state=active]:border-primary transition-all duration-200 flex items-center justify-center gap-2 hover:bg-muted/50 py-2"
               >
+                <AlertTriangle className="h-4 w-4" />
                 Penalties
               </TabsTrigger>
               <TabsTrigger
                 value="rewards"
-                className="rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm"
+                className="rounded-md data-[state=active]:bg-background data-[state=active]:shadow-md data-[state=active]:border-b-2 data-[state=active]:border-primary transition-all duration-200 flex items-center justify-center gap-2 hover:bg-muted/50 py-2"
               >
+                <Award className="h-4 w-4" />
                 Rewards
               </TabsTrigger>
               <TabsTrigger
                 value="attendance"
-                className="rounded-md data-[state=active]:bg-background data-[state=active]:shadow-sm"
+                className="rounded-md data-[state=active]:bg-background data-[state=active]:shadow-md data-[state=active]:border-b-2 data-[state=active]:border-primary transition-all duration-200 flex items-center justify-center gap-2 hover:bg-muted/50 py-2"
               >
+                <Calendar className="h-4 w-4" />
                 Attendance
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="overview" className="p-4 animate-slide-in">
+            <TabsContent value="overview" className="p-4 animate-in fade-in duration-300">
               <AgentTable />
             </TabsContent>
 
-            <TabsContent value="penalties" className="p-4 animate-slide-in">
+            <TabsContent value="penalties" className="p-4 animate-in fade-in duration-300">
               <PenaltiesTab />
             </TabsContent>
 
-            <TabsContent value="rewards" className="p-4 animate-slide-in">
+            <TabsContent value="rewards" className="p-4 animate-in fade-in duration-300">
               <RewardsTab />
             </TabsContent>
 
-            <TabsContent value="attendance" className="p-4 animate-slide-in">
+            <TabsContent value="attendance" className="p-4 animate-in fade-in duration-300">
               <AttendanceTab />
             </TabsContent>
           </Tabs>

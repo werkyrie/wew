@@ -47,7 +47,7 @@ export default function ChangePassword() {
 
     try {
       // Change password
-      const result = await changePassword(user?.username || "", currentPassword, newPassword)
+      const result = await changePassword(user?.email || "", currentPassword, newPassword)
 
       if (result.success) {
         setSuccess(true)
@@ -72,74 +72,62 @@ export default function ChangePassword() {
         <CardDescription>Update your account password</CardDescription>
       </CardHeader>
       <CardContent>
-        {isViewer ? (
-          <Alert>
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Restricted Access</AlertTitle>
-            <AlertDescription>
-              You don't have permission to change passwords. Please contact an administrator.
-            </AlertDescription>
-          </Alert>
-        ) : (
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {error && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Error</AlertTitle>
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {error && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Error</AlertTitle>
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
 
-            {success && (
-              <Alert className="bg-green-50 border-green-500 text-green-700 dark:bg-green-900 dark:border-green-700 dark:text-green-50">
-                <Check className="h-4 w-4" />
-                <AlertTitle>Success</AlertTitle>
-                <AlertDescription>Your password has been changed successfully.</AlertDescription>
-              </Alert>
-            )}
+          {success && (
+            <Alert className="bg-green-50 border-green-500 text-green-700 dark:bg-green-900 dark:border-green-700 dark:text-green-50">
+              <Check className="h-4 w-4" />
+              <AlertTitle>Success</AlertTitle>
+              <AlertDescription>Your password has been changed successfully.</AlertDescription>
+            </Alert>
+          )}
 
-            <div className="space-y-2">
-              <Label htmlFor="currentPassword">Current Password</Label>
-              <Input
-                id="currentPassword"
-                type="password"
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-                placeholder="Enter your current password"
-              />
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="currentPassword">Current Password</Label>
+            <Input
+              id="currentPassword"
+              type="password"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              placeholder="Enter your current password"
+            />
+          </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="newPassword">New Password</Label>
-              <Input
-                id="newPassword"
-                type="password"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="Enter your new password"
-              />
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="newPassword">New Password</Label>
+            <Input
+              id="newPassword"
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="Enter your new password"
+            />
+          </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm New Password</Label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Confirm your new password"
-              />
-            </div>
-          </form>
-        )}
+          <div className="space-y-2">
+            <Label htmlFor="confirmPassword">Confirm New Password</Label>
+            <Input
+              id="confirmPassword"
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="Confirm your new password"
+            />
+          </div>
+        </form>
       </CardContent>
-      {!isViewer && (
-        <CardFooter>
-          <Button onClick={handleSubmit} disabled={isLoading}>
-            {isLoading ? "Changing Password..." : "Change Password"}
-          </Button>
-        </CardFooter>
-      )}
+      <CardFooter>
+        <Button onClick={handleSubmit} disabled={isLoading}>
+          {isLoading ? "Changing Password..." : "Change Password"}
+        </Button>
+      </CardFooter>
     </Card>
   )
 }
