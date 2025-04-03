@@ -223,20 +223,51 @@ export default function AgentTable() {
   }
 
   // Handle data reset
-  const handleDataReset = (resetDate: Date, options: { today: boolean; monthly: boolean; open: boolean }) => {
+  const handleDataReset = async (resetDate: Date, options: { today: boolean; monthly: boolean; open: boolean }) => {
     try {
-      // This would be implemented to call your actual data reset API
-      console.log("Resetting data for:", format(resetDate, "yyyy-MM-dd"), options)
+      // Track how many agents were updated
+      let updatedCount = 0
 
-      // Show success message with details of what was reset
+      // Create a copy of agents to modify
+      const updatedAgents = [...agents]
+
+      // Update each agent based on selected options
+      for (const agent of updatedAgents) {
+        let needsUpdate = false
+        const updatedAgent = { ...agent }
+
+        if (options.today) {
+          updatedAgent.addedToday = 0
+          needsUpdate = true
+        }
+
+        if (options.monthly) {
+          updatedAgent.monthlyAdded = 0
+          needsUpdate = true
+        }
+
+        if (options.open) {
+          updatedAgent.openAccounts = 0
+          needsUpdate = true
+        }
+
+        // Only update if something changed
+        if (needsUpdate) {
+          await updateAgent(updatedAgent)
+          updatedCount++
+        }
+      }
+
+      // Build reset options string for toast message
       const resetOptions = []
       if (options.today) resetOptions.push("Added Today")
       if (options.monthly) resetOptions.push("Monthly Added")
       if (options.open) resetOptions.push("Open Accounts")
 
+      // Show success message with details of what was reset
       toast({
         title: "Data Reset Complete",
-        description: `Reset ${resetOptions.join(", ")} for ${format(resetDate, "MMMM d, yyyy")}`,
+        description: `Reset ${resetOptions.join(", ")} for ${updatedCount} agents on ${format(resetDate, "MMMM d, yyyy")}`,
       })
 
       // Close the modal

@@ -38,8 +38,11 @@ import ExportOptionsModal from "./modals/export-options-modal"
 // Import the helper functions
 import { formatCurrency, formatDate } from "@/utils/format-helpers"
 
+// Define OrderStatus type
+type OrderStatus = "Pending" | "Processing" | "Completed"
+
 export default function OrdersTable() {
-  const { orders, clients, deleteOrder } = useClientContext()
+  const { orders, clients, deleteOrder, updateOrder } = useClientContext()
   const { isViewer } = useAuth()
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([])
   const [searchTerm, setSearchTerm] = useState("")
@@ -100,6 +103,40 @@ export default function OrdersTable() {
 
     setFilteredOrders(result)
   }, [orders, searchTerm, sortField, sortDirection, statusFilter, agentFilter])
+
+  // Auto-update Processing orders older than 8 days to Completed
+  useEffect(() => {
+    const autoUpdateProcessingOrders = () => {
+      const currentDate = new Date()
+      const updatedOrders = orders.filter((order) => {
+        if (order.status === "Processing") {
+          // Convert order date to Date object if it's a string
+          const orderDate = typeof order.date === "string" ? new Date(order.date) : order.date
+
+          // Add 8 days to the order date
+          const deadlineDate = new Date(orderDate)
+          deadlineDate.setDate(deadlineDate.getDate() + 8)
+
+          // If current date is past the deadline, update to Completed
+          if (currentDate > deadlineDate) {
+            const updatedOrder = { ...order, status: "Completed" as OrderStatus }
+            updateOrder(updatedOrder)
+            return false // Remove from filtered list since we're updating it
+          }
+        }
+        return true // Keep all other orders in the filtered list
+      })
+    }
+
+    // Run the auto-update when component mounts and when orders change
+    autoUpdateProcessingOrders()
+
+    // Set up an interval to check every hour (in milliseconds)
+    const intervalId = setInterval(autoUpdateProcessingOrders, 60 * 60 * 1000)
+
+    // Clean up the interval when component unmounts
+    return () => clearInterval(intervalId)
+  }, [orders, updateOrder])
 
   // Calculate pagination
   const totalPages = Math.ceil(filteredOrders.length / itemsPerPage)

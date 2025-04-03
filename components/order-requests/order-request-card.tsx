@@ -18,7 +18,7 @@ import {
   Store,
   MessageSquare,
   Trash2,
-  Link,
+  ClipboardCopy,
 } from "lucide-react"
 import type { OrderRequest, OrderRequestStatus } from "@/types/client"
 import { formatCurrency, formatDate } from "@/utils/format-helpers"
@@ -91,13 +91,26 @@ export default function OrderRequestCard({ request }: OrderRequestCardProps) {
     setIsDeleteDialogOpen(false)
   }
 
-  // Handle share to Telegram
-  const handleShareTelegram = () => {
-    const shareableLink = `${window.location.origin}/order-requests/${request.id}`
-    navigator.clipboard.writeText(shareableLink)
+  // Handle copy information
+  const handleCopyInformation = () => {
+    // Create a detailed message with order request information
+    const message = `
+🛍️ Order Request
+👤 Client: ${request.clientName}
+🏪 Shop ID: ${request.shopId}
+📍 Location: ${request.location}
+💰 Price: ${formatCurrency(request.price || 0)}
+📅 Date: ${formatDate(request.date)}
+🔄 Status: ${request.status}
+${request.remarks ? `💬 Remarks: ${request.remarks}` : ""}
+`.trim()
+
+    // Copy to clipboard
+    navigator.clipboard.writeText(message)
+
     toast({
-      title: "Link Copied",
-      description: "Shareable link copied to clipboard!",
+      title: "Information Copied",
+      description: "Order details copied to clipboard!",
     })
   }
 
@@ -186,10 +199,10 @@ export default function OrderRequestCard({ request }: OrderRequestCardProps) {
               variant="outline"
               size="sm"
               className="text-blue-500 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20"
-              onClick={handleShareTelegram}
+              onClick={handleCopyInformation}
             >
-              <Link className="h-4 w-4 mr-1" />
-              Share to Telegram
+              <ClipboardCopy className="h-4 w-4 mr-1" />
+              Copy Information
             </Button>
 
             {isAdmin && (
