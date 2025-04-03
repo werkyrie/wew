@@ -453,9 +453,9 @@ export default function AgentTable() {
                   variant="ghost"
                   size="icon"
                   onClick={() => handleCellEditClick(agent.id, field, value)}
-                  className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity ml-2 rounded-full hover:bg-primary/10"
+                  className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity ml-2 rounded-full hover:bg-primary/10 dark:hover:bg-primary/20 dark:hover:shadow-[0_0_10px_rgba(59,130,246,0.5)] dark:hover:text-primary-foreground"
                 >
-                  <Edit className="h-3.5 w-3.5 text-primary" />
+                  <Edit className="h-3.5 w-3.5 text-primary dark:text-white" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
