@@ -207,6 +207,12 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
                       active={activeTab === "team"}
                       onClick={() => navigateTo("team")}
                     />
+                    <MobileNavItem
+                      icon={<FileText className="h-5 w-5" />}
+                      label="Reports"
+                      active={activeTab === "reports"}
+                      onClick={() => navigateTo("reports")}
+                    />
                     {!isViewer && (
                       <MobileNavItem
                         icon={<Settings className="h-5 w-5" />}
@@ -312,6 +318,13 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
               active={activeTab === "team"}
               collapsed={false}
               onClick={() => navigateTo("team")}
+            />
+            <NavItem
+              icon={<FileText className="h-5 w-5" />}
+              label="Reports"
+              active={activeTab === "reports"}
+              collapsed={false}
+              onClick={() => navigateTo("reports")}
             />
             {!isViewer && (
               <NavItem

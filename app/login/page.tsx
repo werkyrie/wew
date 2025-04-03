@@ -338,7 +338,7 @@ export default function LoginPage() {
                   <motion.div variants={buttonVariants} whileHover="hover">
                     <Button
                       type="submit"
-                      className="w-full py-6 text-base font-medium bg-gradient-to-r from-gray-100 via-gray-200 to-gray-300 hover:from-gray-200 hover:via-gray-300 hover:to-gray-400 dark:from-gray-700 dark:via-gray-800 dark:to-gray-900 dark:hover:from-gray-800 dark:hover:via-gray-900 dark:hover:to-black text-gray-800 dark:text-white transition-all duration-300 rounded-xl shadow-lg hover:shadow-gray-400/40 dark:hover:shadow-black/40 group"
+                      className="w-full py-6 text-base font-medium bg-gradient-to-r from-gray-100 via-gray-200 to-gray-300 hover:bg-black hover:text-white dark:from-gray-700 dark:via-gray-800 dark:to-gray-900 dark:hover:bg-white dark:hover:text-gray-900 transition-all duration-300 rounded-xl shadow-lg hover:shadow-gray-400/40 dark:hover:shadow-black/40 group"
                       disabled={isLoading}
                     >
                       {isLoading ? (

@@ -14,6 +14,7 @@ import OrderRequestPage from "@/components/order-requests/order-request-page"
 import Sidebar from "@/components/sidebar"
 import NavBar from "@/components/nav-bar"
 import { useAuth } from "@/context/auth-context"
+import ReportsPage from "@/components/reports/reports-page"
 
 export default function Home() {
   const searchParams = useSearchParams()
@@ -92,6 +93,10 @@ export default function Home() {
 
           <TabsContent value="team" className="mt-0">
             <TeamPerformancePage />
+          </TabsContent>
+
+          <TabsContent value="reports" className="mt-0">
+            <ReportsPage />
           </TabsContent>
 
           <TabsContent value="settings" className="mt-0">
