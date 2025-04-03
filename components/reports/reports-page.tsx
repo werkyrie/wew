@@ -629,7 +629,7 @@ export default function ReportsPage() {
                   <div className="mb-4">
                     <Alert variant="destructive" className="mb-4">
                       <AlertCircle className="h-4 w-4" />
-                      <AlertTitle>Required fields</AlertTitle>
+                      <AlertTitle>Pa ki fill up! </AlertTitle>
                       <AlertDescription>
                         Please fill out both the Conversation Summary and Plan for Tomorrow fields.
                       </AlertDescription>
@@ -652,11 +652,11 @@ export default function ReportsPage() {
 
                   <div className="space-y-2">
                     <label htmlFor={`clientDetails-${client.id}`} className="text-sm font-medium">
-                      Client Details
+                      Client Details (Name/Age/Job/Location)
                     </label>
                     <Textarea
                       id={`clientDetails-${client.id}`}
-                      placeholder="Client Name/ Age/ Job/Location"
+                      placeholder="Enter client details"
                       value={client.clientDetails}
                       onChange={(e) => updateClient(client.id, "clientDetails", e.target.value)}
                       rows={3}
