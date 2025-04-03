@@ -9,8 +9,24 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from "@/hooks/use-toast"
-import { Loader2, Plus, Trash2, Copy, RefreshCw, Languages, FileText, Download, Upload } from "lucide-react"
+import {
+  Loader2,
+  Plus,
+  Trash2,
+  Copy,
+  RefreshCw,
+  Languages,
+  FileText,
+  Download,
+  Upload,
+  AlertCircle,
+  CheckCircle2,
+} from "lucide-react"
 import { useAuth } from "@/context/auth-context"
+import { useTeamContext } from "@/context/team-context"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Badge } from "@/components/ui/badge"
 
 // Client interface
 interface Client {
@@ -33,6 +49,11 @@ interface ReportData {
   lastModified: string
 }
 
+interface DateRange {
+  from?: Date
+  to?: Date
+}
+
 // Initial empty client template
 const emptyClient = (): Client => ({
   id: crypto.randomUUID(),
@@ -46,35 +67,37 @@ const emptyClient = (): Client => ({
 export default function ReportsPage() {
   const { toast } = useToast()
   const { isAdmin } = useAuth()
-
-  // Agent information state
-  const [agentName, setAgentName] = useState("")
-  const [addedToday, setAddedToday] = useState("")
-  const [monthlyAdded, setMonthlyAdded] = useState("")
-  const [openShops, setOpenShops] = useState("")
-  const [deposits, setDeposits] = useState("")
-
-  // Clients state
-  const [clients, setClients] = useState<Client[]>([emptyClient()])
-
-  // Report state
-  const [generatedReport, setGeneratedReport] = useState("")
-  const [isGenerating, setIsGenerating] = useState(false)
-
-  // File input ref for JSON import
-  const fileInputRef = useRef<HTMLInputElement>(null)
-
-  // Report container ref for scrolling
+  const { agents } = useTeamContext()
+  const [reportType, setReportType] = useState<string>("agent-performance")
+  const [dateRange, setDateRange] = useState<DateRange>({
+    from: new Date(),
+    to: new Date(),
+  })
+  const [agentName, setAgentName] = useState<string>("")
+  const [addedToday, setAddedToday] = useState<number>(0)
+  const [monthlyAdded, setMonthlyAdded] = useState<number>(0)
+  const [openShops, setOpenShops] = useState<number>(0)
+  const [agentDeposits, setAgentDeposits] = useState<number>(0)
+  const [isGenerating, setIsGenerating] = useState<boolean>(false)
+  const [generatedReport, setGeneratedReport] = useState<string>("")
   const reportContainerRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [reportData, setReportData] = useState<any>(null)
+  const [reportClients, setReportClients] = useState<Client[]>([emptyClient()])
+  const [activeTabIndex, setActiveTabIndex] = useState<number>(0)
+  const [clientTabs, setClientTabs] = useState<{ [key: string]: string }>({})
+  const [validationErrors, setValidationErrors] = useState<{ [key: string]: boolean }>({})
 
   // Add a new client
   const addClient = () => {
-    setClients([...clients, emptyClient()])
+    const newClient = emptyClient()
+    setReportClients([...reportClients, newClient])
+    setClientTabs({ ...clientTabs, [newClient.id]: "basic" })
   }
 
   // Remove a client
   const removeClient = (id: string) => {
-    if (clients.length <= 1) {
+    if (reportClients.length <= 1) {
       toast({
         title: "Cannot remove",
         description: "You must have at least one client in the report",
@@ -83,16 +106,84 @@ export default function ReportsPage() {
       return
     }
 
-    setClients(clients.filter((client) => client.id !== id))
+    setReportClients(reportClients.filter((client) => client.id !== id))
+
+    // Remove from tabs and validation errors
+    const newClientTabs = { ...clientTabs }
+    delete newClientTabs[id]
+    setClientTabs(newClientTabs)
+
+    const newValidationErrors = { ...validationErrors }
+    delete newValidationErrors[id]
+    setValidationErrors(newValidationErrors)
   }
 
   // Update client field
   const updateClient = (id: string, field: keyof Client, value: string) => {
-    setClients(clients.map((client) => (client.id === id ? { ...client, [field]: value } : client)))
+    setReportClients(reportClients.map((client) => (client.id === id ? { ...client, [field]: value } : client)))
+
+    // Clear validation error when field is filled
+    if (value && validationErrors[id]) {
+      const newValidationErrors = { ...validationErrors }
+      delete newValidationErrors[id]
+      setValidationErrors(newValidationErrors)
+    }
+  }
+
+  // Set active tab for a client
+  const setActiveTab = (clientId: string, tab: string) => {
+    setClientTabs({ ...clientTabs, [clientId]: tab })
+  }
+
+  // Check if client has plan information
+  const clientHasPlanInfo = (client: Client) => {
+    return Boolean(client.conversationSummary.trim() && client.planForTomorrow.trim())
+  }
+
+  // Validate all clients have plan information
+  const validateClientPlans = () => {
+    const errors: { [key: string]: boolean } = {}
+    let hasErrors = false
+
+    reportClients.forEach((client) => {
+      if (!clientHasPlanInfo(client)) {
+        errors[client.id] = true
+        hasErrors = true
+      }
+    })
+
+    setValidationErrors(errors)
+
+    if (hasErrors) {
+      toast({
+        title: "Missing plan information",
+        description: "Please fill out the Conversation Summary and Plan for Tomorrow for all clients",
+        variant: "destructive",
+      })
+
+      // Switch to plan tab for the first client with an error
+      const firstErrorId = Object.keys(errors)[0]
+      if (firstErrorId) {
+        setClientTabs({ ...clientTabs, [firstErrorId]: "plan" })
+
+        // Scroll to the client with error
+        const clientElement = document.getElementById(`client-${firstErrorId}`)
+        if (clientElement) {
+          clientElement.scrollIntoView({ behavior: "smooth" })
+        }
+      }
+    }
+
+    return !hasErrors
   }
 
   // Generate the report
   const generateReport = () => {
+    // Validate plan information first
+    if (!validateClientPlans()) {
+      return
+    }
+
     setIsGenerating(true)
 
     // Simulate processing delay
@@ -105,12 +196,12 @@ export default function ReportsPage() {
       report += `Added Today: ${addedToday || "0"}\n`
       report += `Monthly Added: ${monthlyAdded || "0"}\n`
       report += `Open Shops: ${openShops || "0"}\n`
-      report += `Deposits: ${deposits || "$0"}\n\n`
+      report += `Deposits: ${agentDeposits || "$0"}\n\n`
 
       // Clients section
       report += `CLIENT INFORMATION:\n\n`
 
-      clients.forEach((client, index) => {
+      reportClients.forEach((client, index) => {
         report += `CLIENT ${index + 1}:\n`
         report += `Shop ID: ${client.shopId || "Not specified"}\n`
         report += `Client Details: ${client.clientDetails || "None"}\n`
@@ -199,11 +290,11 @@ export default function ReportsPage() {
     // Create report data object
     const reportData: ReportData = {
       agentName,
-      addedToday,
-      monthlyAdded,
-      openShops,
-      deposits,
-      clients,
+      addedToday: addedToday.toString(),
+      monthlyAdded: monthlyAdded.toString(),
+      openShops: openShops.toString(),
+      deposits: agentDeposits.toString(),
+      clients: reportClients,
       lastModified: new Date().toISOString(),
     }
 
@@ -257,10 +348,10 @@ export default function ReportsPage() {
 
         // Update state with imported data
         setAgentName(reportData.agentName || "")
-        setAddedToday(reportData.addedToday || "")
-        setMonthlyAdded(reportData.monthlyAdded || "")
-        setOpenShops(reportData.openShops || "")
-        setDeposits(reportData.deposits || "")
+        setAddedToday(Number(reportData.addedToday) || 0)
+        setMonthlyAdded(Number(reportData.monthlyAdded) || 0)
+        setOpenShops(Number(reportData.openShops) || 0)
+        setAgentDeposits(Number(reportData.deposits) || 0)
 
         // Ensure each client has an ID
         const importedClients = reportData.clients?.map((client) => ({
@@ -268,7 +359,14 @@ export default function ReportsPage() {
           id: client.id || crypto.randomUUID(),
         })) || [emptyClient()]
 
-        setClients(importedClients)
+        setReportClients(importedClients)
+
+        // Initialize tabs for imported clients
+        const newClientTabs: { [key: string]: string } = {}
+        importedClients.forEach((client) => {
+          newClientTabs[client.id] = "basic"
+        })
+        setClientTabs(newClientTabs)
 
         toast({
           title: "Report Imported",
@@ -307,14 +405,28 @@ export default function ReportsPage() {
       try {
         const data = JSON.parse(savedData)
         setAgentName(data.agentName || "")
-        setAddedToday(data.addedToday || "")
-        setMonthlyAdded(data.monthlyAdded || "")
-        setOpenShops(data.openShops || "")
-        setDeposits(data.deposits || "")
-        setClients(data.clients || [emptyClient()])
+        setAddedToday(Number(data.addedToday) || 0)
+        setMonthlyAdded(Number(data.monthlyAdded) || 0)
+        setOpenShops(Number(data.openShops) || 0)
+        setAgentDeposits(Number(data.deposits) || 0)
+
+        const loadedClients = data.clients || [emptyClient()]
+        setReportClients(loadedClients)
+
+        // Initialize tabs for loaded clients
+        const newClientTabs: { [key: string]: string } = {}
+        loadedClients.forEach((client) => {
+          newClientTabs[client.id] = "basic"
+        })
+        setClientTabs(newClientTabs)
       } catch (e) {
         console.error("Error loading saved data:", e)
       }
+    } else {
+      // Initialize tabs for default client
+      const defaultClient = emptyClient()
+      setReportClients([defaultClient])
+      setClientTabs({ [defaultClient.id]: "basic" })
     }
   }, [])
 
@@ -325,12 +437,25 @@ export default function ReportsPage() {
       addedToday,
       monthlyAdded,
       openShops,
-      deposits,
-      clients,
+      deposits: agentDeposits,
+      clients: reportClients,
     }
 
     localStorage.setItem("agentReportData", JSON.stringify(dataToSave))
-  }, [agentName, addedToday, monthlyAdded, openShops, deposits, clients])
+  }, [agentName, addedToday, monthlyAdded, openShops, agentDeposits, reportClients])
+
+  // Auto-populate fields when agent is selected
+  useEffect(() => {
+    if (agentName && agents) {
+      const selectedAgent = agents.find((agent) => agent.name === agentName)
+      if (selectedAgent) {
+        setAddedToday(selectedAgent.addedToday || 0)
+        setMonthlyAdded(selectedAgent.monthlyAdded || 0)
+        setOpenShops(selectedAgent.openAccounts || 0)
+        setAgentDeposits(selectedAgent.totalDeposits || 0)
+      }
+    }
+  }, [agentName, agents])
 
   return (
     <div className="container mx-auto p-4 md:p-6 space-y-8 animate-fade-in">
@@ -351,12 +476,24 @@ export default function ReportsPage() {
               <label htmlFor="agentName" className="text-sm font-medium">
                 Agent Name
               </label>
-              <Input
-                id="agentName"
-                placeholder="Enter agent name"
-                value={agentName}
-                onChange={(e) => setAgentName(e.target.value)}
-              />
+              <Select value={agentName} onValueChange={setAgentName}>
+                <SelectTrigger id="agentName" className="w-full">
+                  <SelectValue placeholder="Select an agent" />
+                </SelectTrigger>
+                <SelectContent>
+                  {agents && agents.length > 0 ? (
+                    agents.map((agent) => (
+                      <SelectItem key={agent.id} value={agent.name}>
+                        {agent.name}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="" disabled>
+                      No agents available
+                    </SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">
@@ -367,7 +504,7 @@ export default function ReportsPage() {
                 id="addedToday"
                 placeholder="Number of clients added today"
                 value={addedToday}
-                onChange={(e) => setAddedToday(e.target.value)}
+                onChange={(e) => setAddedToday(Number(e.target.value))}
               />
             </div>
 
@@ -379,7 +516,7 @@ export default function ReportsPage() {
                 id="monthlyAdded"
                 placeholder="Number of clients added this month"
                 value={monthlyAdded}
-                onChange={(e) => setMonthlyAdded(e.target.value)}
+                onChange={(e) => setMonthlyAdded(Number(e.target.value))}
               />
             </div>
 
@@ -391,7 +528,7 @@ export default function ReportsPage() {
                 id="openShops"
                 placeholder="Number of open shops"
                 value={openShops}
-                onChange={(e) => setOpenShops(e.target.value)}
+                onChange={(e) => setOpenShops(Number(e.target.value))}
               />
             </div>
 
@@ -402,8 +539,8 @@ export default function ReportsPage() {
               <Input
                 id="deposits"
                 placeholder="Total deposits amount"
-                value={deposits}
-                onChange={(e) => setDeposits(e.target.value)}
+                value={agentDeposits}
+                onChange={(e) => setAgentDeposits(Number(e.target.value))}
               />
             </div>
           </div>
@@ -420,11 +557,41 @@ export default function ReportsPage() {
           </Button>
         </div>
 
-        {clients.map((client, index) => (
-          <Card key={client.id} className="shadow-sm hover:shadow-md transition-shadow duration-300">
+        <Alert className="bg-amber-50 border-amber-200">
+          <AlertCircle className="h-4 w-4 text-amber-600" />
+          <AlertTitle className="text-amber-800">Important</AlertTitle>
+          <AlertDescription className="text-amber-700">
+            Both the <strong>Basic Information</strong> and <strong>Plan</strong> tabs must be filled out for each
+            client. The Plan tab is required for report generation.
+          </AlertDescription>
+        </Alert>
+
+        {reportClients.map((client, index) => (
+          <Card
+            key={client.id}
+            id={`client-${client.id}`}
+            className={`shadow-sm hover:shadow-md transition-shadow duration-300 ${validationErrors[client.id] ? "border-red-300 bg-red-50" : ""}`}
+          >
             <CardHeader className="bg-muted/30 pb-2">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-lg">Client {index + 1}</CardTitle>
+                <div className="flex items-center gap-2">
+                  <CardTitle className="text-lg">Client {index + 1}</CardTitle>
+                  {clientHasPlanInfo(client) ? (
+                    <Badge
+                      variant="outline"
+                      className="bg-green-50 text-green-700 border-green-200 flex items-center gap-1"
+                    >
+                      <CheckCircle2 className="h-3 w-3" /> Plan Complete
+                    </Badge>
+                  ) : (
+                    <Badge
+                      variant="outline"
+                      className="bg-amber-50 text-amber-700 border-amber-200 flex items-center gap-1"
+                    >
+                      <AlertCircle className="h-3 w-3" /> Plan Required
+                    </Badge>
+                  )}
+                </div>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -437,13 +604,40 @@ export default function ReportsPage() {
               </div>
             </CardHeader>
             <CardContent className="pt-4">
-              <Tabs defaultValue="basic" className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="basic">Basic Information</TabsTrigger>
-                  <TabsTrigger value="plan">Plan</TabsTrigger>
+              <Tabs
+                defaultValue="basic"
+                value={clientTabs[client.id] || "basic"}
+                onValueChange={(value) => setActiveTab(client.id, value)}
+                className="w-full"
+              >
+                <TabsList className="grid w-full grid-cols-2 mb-4">
+                  <TabsTrigger
+                    value="basic"
+                    className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                  >
+                    Basic Information
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="plan"
+                    className={`data-[state=active]:bg-primary data-[state=active]:text-primary-foreground ${validationErrors[client.id] ? "bg-red-100 text-red-700 border-red-300" : ""}`}
+                  >
+                    Plan <span className="text-red-500 ml-1">*</span>
+                  </TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="basic" className="pt-4 space-y-4">
+                {validationErrors[client.id] && (
+                  <div className="mb-4">
+                    <Alert variant="destructive" className="mb-4">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertTitle>Required fields</AlertTitle>
+                      <AlertDescription>
+                        Please fill out both the Conversation Summary and Plan for Tomorrow fields.
+                      </AlertDescription>
+                    </Alert>
+                  </div>
+                )}
+
+                <TabsContent value="basic" className="pt-2 space-y-4">
                   <div className="space-y-2">
                     <label htmlFor={`shopId-${client.id}`} className="text-sm font-medium">
                       Shop ID
@@ -462,7 +656,7 @@ export default function ReportsPage() {
                     </label>
                     <Textarea
                       id={`clientDetails-${client.id}`}
-                      placeholder="Enter client details"
+                      placeholder="Client Name/ Age/ Job/Location"
                       value={client.clientDetails}
                       onChange={(e) => updateClient(client.id, "clientDetails", e.target.value)}
                       rows={3}
@@ -481,12 +675,21 @@ export default function ReportsPage() {
                       rows={3}
                     />
                   </div>
+
+                  <div className="flex justify-end mt-4">
+                    <Button onClick={() => setActiveTab(client.id, "plan")} className="flex items-center gap-2">
+                      Next: Plan <span className="text-xs">(Required)</span>
+                    </Button>
+                  </div>
                 </TabsContent>
 
-                <TabsContent value="plan" className="pt-4 space-y-4">
+                <TabsContent value="plan" className="pt-2 space-y-4">
                   <div className="space-y-2">
-                    <label htmlFor={`conversationSummary-${client.id}`} className="text-sm font-medium">
-                      Conversation Summary
+                    <label
+                      htmlFor={`conversationSummary-${client.id}`}
+                      className="text-sm font-medium flex items-center"
+                    >
+                      Conversation Summary <span className="text-red-500 ml-1">*</span>
                     </label>
                     <Textarea
                       id={`conversationSummary-${client.id}`}
@@ -494,12 +697,13 @@ export default function ReportsPage() {
                       value={client.conversationSummary}
                       onChange={(e) => updateClient(client.id, "conversationSummary", e.target.value)}
                       rows={4}
+                      className={validationErrors[client.id] ? "border-red-300" : ""}
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <label htmlFor={`planForTomorrow-${client.id}`} className="text-sm font-medium">
-                      Plan for Tomorrow
+                    <label htmlFor={`planForTomorrow-${client.id}`} className="text-sm font-medium flex items-center">
+                      Plan for Tomorrow <span className="text-red-500 ml-1">*</span>
                     </label>
                     <Textarea
                       id={`planForTomorrow-${client.id}`}
@@ -507,7 +711,42 @@ export default function ReportsPage() {
                       value={client.planForTomorrow}
                       onChange={(e) => updateClient(client.id, "planForTomorrow", e.target.value)}
                       rows={4}
+                      className={validationErrors[client.id] ? "border-red-300" : ""}
                     />
+                  </div>
+
+                  <div className="flex justify-between mt-4">
+                    <Button variant="outline" onClick={() => setActiveTab(client.id, "basic")}>
+                      Back to Basic Info
+                    </Button>
+
+                    {!clientHasPlanInfo(client) && (
+                      <Button
+                        variant="destructive"
+                        className="flex items-center gap-2"
+                        onClick={() => {
+                          setValidationErrors({ ...validationErrors, [client.id]: true })
+                          toast({
+                            title: "Required fields",
+                            description: "Please fill out both the Conversation Summary and Plan for Tomorrow fields.",
+                            variant: "destructive",
+                          })
+                        }}
+                      >
+                        <AlertCircle className="h-4 w-4" />
+                        Required Fields
+                      </Button>
+                    )}
+
+                    {clientHasPlanInfo(client) && (
+                      <Button
+                        variant="outline"
+                        className="flex items-center gap-2 bg-green-50 text-green-700 border-green-200"
+                      >
+                        <CheckCircle2 className="h-4 w-4" />
+                        Plan Complete
+                      </Button>
+                    )}
                   </div>
                 </TabsContent>
               </Tabs>
