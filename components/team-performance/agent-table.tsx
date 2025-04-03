@@ -24,6 +24,7 @@ import {
   Check,
   X,
   RefreshCw,
+  Users,
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import AgentRegistrationModal from "./agent-registration-modal"
@@ -310,7 +311,7 @@ export default function AgentTable() {
     if (rate === 7) return "commission-tier-7"
     if (rate === 9) return "commission-tier-9"
     if (rate === 10) return "commission-tier-10"
-    return ""
+    return "" // Return empty string for default case
   }
 
   const handleExportCsv = () => {
@@ -411,14 +412,14 @@ export default function AgentTable() {
             value={editValue}
             onChange={(e) => setEditValue(e.target.value)}
             onKeyDown={handleKeyPress}
-            className="editable-cell-input text-center"
+            className="editable-cell-input text-center border-primary/50 focus:border-primary shadow-sm"
           />
           <div className="flex items-center">
             <Button
               variant="ghost"
               size="icon"
               onClick={handleCellEditSave}
-              className="h-7 w-7 text-green-600 hover:text-green-700 hover:bg-green-100"
+              className="h-7 w-7 text-green-600 hover:text-green-700 hover:bg-green-100 rounded-full"
             >
               <Check className="h-4 w-4" />
             </Button>
@@ -426,7 +427,7 @@ export default function AgentTable() {
               variant="ghost"
               size="icon"
               onClick={handleCancelEdit}
-              className="h-7 w-7 text-red-600 hover:text-red-700 hover:bg-red-100"
+              className="h-7 w-7 text-red-600 hover:text-red-700 hover:bg-red-100 rounded-full"
             >
               <X className="h-4 w-4" />
             </Button>
@@ -452,9 +453,9 @@ export default function AgentTable() {
                   variant="ghost"
                   size="icon"
                   onClick={() => handleCellEditClick(agent.id, field, value)}
-                  className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity ml-2"
+                  className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity ml-2 rounded-full hover:bg-primary/10"
                 >
-                  <Edit className="h-3.5 w-3.5 text-muted-foreground" />
+                  <Edit className="h-3.5 w-3.5 text-primary" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
@@ -541,40 +542,40 @@ export default function AgentTable() {
       </div>
 
       {!isViewer ? (
-        <div className="bg-amber-50 border border-amber-200 rounded-md p-3 text-amber-800 text-sm mb-4">
-          <p className="flex items-center">
-            <Edit className="h-4 w-4 mr-2" />
-            <span>
-              <strong>Pro tip:</strong> Hover over cells to see edit buttons. Click the edit icon to modify values. Use
-              checkboxes to select multiple agents for bulk actions.
-            </span>
-          </p>
+        <div className="bg-slate-50 border border-slate-200 rounded-md p-4 text-slate-700 text-sm mb-4 flex items-start shadow-sm dark:bg-slate-800/50 dark:border-slate-700 dark:text-slate-300">
+          <Edit className="h-4 w-4 mr-3 mt-0.5 text-primary" />
+          <div>
+            <p className="font-semibold mb-1">Pro tip:</p>
+            <p>
+              Hover over cells to see edit buttons. Click the edit icon to modify values. Use checkboxes to select
+              multiple agents for bulk actions.
+            </p>
+          </div>
         </div>
       ) : (
-        <div className="bg-amber-50 border border-amber-200 rounded-md p-3 text-amber-800 text-sm mb-4">
-          <p className="flex items-center">
-            <Edit className="h-4 w-4 mr-2" />
-            <span>
-              <strong>Pro tip:</strong> As a viewer, you can edit Added Today, Monthly Added, and Open Accounts fields.
-            </span>
-          </p>
+        <div className="bg-slate-50 border border-slate-200 rounded-md p-4 text-slate-700 text-sm mb-4 flex items-start shadow-sm dark:bg-slate-800/50 dark:border-slate-700 dark:text-slate-300">
+          <Edit className="h-4 w-4 mr-3 mt-0.5 text-primary" />
+          <div>
+            <p className="font-semibold mb-1">Pro tip:</p>
+            <p>As a viewer, you can edit Added Today, Monthly Added, and Open Accounts fields.</p>
+          </div>
         </div>
       )}
 
-      <div className="rounded-md border shadow-sm overflow-x-auto bg-card animate-fade-in">
-        <Table>
-          <TableHeader className="sticky top-0 bg-background">
-            <TableRow className="bg-muted/50">
-              {!isViewer && (
-                <TableHead className="w-[50px]">
-                  <Checkbox
-                    checked={filteredAgents.length > 0 && selectedAgents.length === filteredAgents.length}
-                    onCheckedChange={handleSelectAll}
-                    aria-label="Select all agents"
-                  />
-                </TableHead>
-              )}
-              <TableHead className="cursor-pointer font-medium text-center" onClick={() => handleSort("name")}>
+      <Table>
+        <TableHeader className="sticky top-0 bg-gradient-to-r from-slate-100 to-white dark:from-slate-800 dark:to-slate-900 z-10">
+          <TableRow className="border-b-2 border-slate-200 dark:border-slate-700">
+            {!isViewer && (
+              <TableHead className="w-[50px]">
+                <Checkbox
+                  checked={filteredAgents.length > 0 && selectedAgents.length === filteredAgents.length}
+                  onCheckedChange={handleSelectAll}
+                  aria-label="Select all agents"
+                />
+              </TableHead>
+            )}
+            <TableHead className="cursor-pointer font-medium text-center py-4" onClick={() => handleSort("name")}>
+              <div className="flex items-center justify-center">
                 Agent Name
                 {sortField === "name" &&
                   (sortDirection === "asc" ? (
@@ -582,8 +583,13 @@ export default function AgentTable() {
                   ) : (
                     <ChevronDown className="ml-1 h-4 w-4 inline" />
                   ))}
-              </TableHead>
-              <TableHead className="cursor-pointer font-medium text-center" onClick={() => handleSort("addedToday")}>
+              </div>
+            </TableHead>
+            <TableHead
+              className="cursor-pointer font-medium text-center border-l border-slate-200 dark:border-slate-700"
+              onClick={() => handleSort("addedToday")}
+            >
+              <div className="flex items-center justify-center">
                 Added Today
                 {sortField === "addedToday" &&
                   (sortDirection === "asc" ? (
@@ -591,8 +597,13 @@ export default function AgentTable() {
                   ) : (
                     <ChevronDown className="ml-1 h-4 w-4 inline" />
                   ))}
-              </TableHead>
-              <TableHead className="cursor-pointer font-medium text-center" onClick={() => handleSort("monthlyAdded")}>
+              </div>
+            </TableHead>
+            <TableHead
+              className="cursor-pointer font-medium text-center border-l border-slate-200 dark:border-slate-700"
+              onClick={() => handleSort("monthlyAdded")}
+            >
+              <div className="flex items-center justify-center">
                 Monthly Added
                 {sortField === "monthlyAdded" &&
                   (sortDirection === "asc" ? (
@@ -600,8 +611,13 @@ export default function AgentTable() {
                   ) : (
                     <ChevronDown className="ml-1 h-4 w-4 inline" />
                   ))}
-              </TableHead>
-              <TableHead className="cursor-pointer font-medium text-center" onClick={() => handleSort("openAccounts")}>
+              </div>
+            </TableHead>
+            <TableHead
+              className="cursor-pointer font-medium text-center border-l border-slate-200 dark:border-slate-700"
+              onClick={() => handleSort("openAccounts")}
+            >
+              <div className="flex items-center justify-center">
                 Open Accounts
                 {sortField === "openAccounts" &&
                   (sortDirection === "asc" ? (
@@ -609,8 +625,13 @@ export default function AgentTable() {
                   ) : (
                     <ChevronDown className="ml-1 h-4 w-4 inline" />
                   ))}
-              </TableHead>
-              <TableHead className="cursor-pointer font-medium text-center" onClick={() => handleSort("totalDeposits")}>
+              </div>
+            </TableHead>
+            <TableHead
+              className="cursor-pointer font-medium text-center border-l border-slate-200 dark:border-slate-700"
+              onClick={() => handleSort("totalDeposits")}
+            >
+              <div className="flex items-center justify-center">
                 Total Deposits
                 {sortField === "totalDeposits" &&
                   (sortDirection === "asc" ? (
@@ -618,11 +639,13 @@ export default function AgentTable() {
                   ) : (
                     <ChevronDown className="ml-1 h-4 w-4 inline" />
                   ))}
-              </TableHead>
-              <TableHead
-                className="cursor-pointer font-medium text-center"
-                onClick={() => handleSort("totalWithdrawals")}
-              >
+              </div>
+            </TableHead>
+            <TableHead
+              className="cursor-pointer font-medium text-center border-l border-slate-200 dark:border-slate-700"
+              onClick={() => handleSort("totalWithdrawals")}
+            >
+              <div className="flex items-center justify-center">
                 Total Withdrawals
                 {sortField === "totalWithdrawals" &&
                   (sortDirection === "asc" ? (
@@ -630,11 +653,13 @@ export default function AgentTable() {
                   ) : (
                     <ChevronDown className="ml-1 h-4 w-4 inline" />
                   ))}
-              </TableHead>
-              <TableHead
-                className="cursor-pointer font-medium text-center"
-                onClick={() => handleSort("commissionRate")}
-              >
+              </div>
+            </TableHead>
+            <TableHead
+              className="cursor-pointer font-medium text-center border-l border-slate-200 dark:border-slate-700"
+              onClick={() => handleSort("commissionRate")}
+            >
+              <div className="flex items-center justify-center">
                 Commission
                 {sortField === "commissionRate" &&
                   (sortDirection === "asc" ? (
@@ -642,8 +667,13 @@ export default function AgentTable() {
                   ) : (
                     <ChevronDown className="ml-1 h-4 w-4 inline" />
                   ))}
-              </TableHead>
-              <TableHead className="cursor-pointer font-medium text-center" onClick={() => handleSort("lastEditedBy")}>
+              </div>
+            </TableHead>
+            <TableHead
+              className="cursor-pointer font-medium text-center border-l border-slate-200 dark:border-slate-700"
+              onClick={() => handleSort("lastEditedBy")}
+            >
+              <div className="flex items-center justify-center">
                 Last Edited By
                 {sortField === "lastEditedBy" &&
                   (sortDirection === "asc" ? (
@@ -651,107 +681,122 @@ export default function AgentTable() {
                   ) : (
                     <ChevronDown className="ml-1 h-4 w-4 inline" />
                   ))}
-              </TableHead>
-              <TableHead className="text-center">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredAgents.length > 0 ? (
-              filteredAgents.map((agent) => (
-                <TableRow
-                  key={agent.id}
-                  className={`agent-row hover:bg-muted/30 transition-colors ${
-                    editingCell?.agentId === agent.id ? "editing bg-muted/20" : ""
-                  } ${selectedAgents.includes(agent.id) ? "bg-muted/40" : ""}`}
+              </div>
+            </TableHead>
+            <TableHead className="text-center border-l border-slate-200 dark:border-slate-700">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {filteredAgents.length > 0 ? (
+            filteredAgents.map((agent, index) => (
+              <TableRow
+                key={agent.id}
+                className={`agent-row transition-colors ${
+                  editingCell?.agentId === agent.id
+                    ? "bg-blue-50 dark:bg-blue-900/20"
+                    : index % 2 === 0
+                      ? "bg-white dark:bg-slate-950"
+                      : "bg-slate-50 dark:bg-slate-900/50"
+                } ${selectedAgents.includes(agent.id) ? "bg-primary/5 dark:bg-primary/10" : ""}`}
+              >
+                {!isViewer && (
+                  <TableCell className="w-[50px]">
+                    <Checkbox
+                      checked={selectedAgents.includes(agent.id)}
+                      onCheckedChange={() => handleSelectAgent(agent.id)}
+                      aria-label={`Select ${agent.name}`}
+                    />
+                  </TableCell>
+                )}
+                <TableCell className="editable-cell text-center font-medium">
+                  {renderEditableCell(agent, "name", agent.name)}
+                </TableCell>
+                <TableCell className="editable-cell text-center border-l border-slate-100 dark:border-slate-800">
+                  {renderEditableCell(agent, "addedToday", agent.addedToday)}
+                </TableCell>
+                <TableCell className="editable-cell text-center border-l border-slate-100 dark:border-slate-800">
+                  {renderEditableCell(agent, "monthlyAdded", agent.monthlyAdded)}
+                </TableCell>
+                <TableCell className="editable-cell text-center border-l border-slate-100 dark:border-slate-800">
+                  {renderEditableCell(agent, "openAccounts", agent.openAccounts)}
+                </TableCell>
+                <TableCell
+                  className={`${isAdmin ? "editable-cell" : ""} text-center border-l border-slate-100 dark:border-slate-800`}
                 >
-                  {!isViewer && (
-                    <TableCell className="w-[50px]">
-                      <Checkbox
-                        checked={selectedAgents.includes(agent.id)}
-                        onCheckedChange={() => handleSelectAgent(agent.id)}
-                        aria-label={`Select ${agent.name}`}
-                      />
-                    </TableCell>
+                  {isAdmin ? (
+                    renderEditableCell(agent, "totalDeposits", agent.totalDeposits)
+                  ) : (
+                    <span className="font-medium">${agent.totalDeposits.toLocaleString()}</span>
                   )}
-                  <TableCell className="editable-cell text-center">
-                    {renderEditableCell(agent, "name", agent.name)}
-                  </TableCell>
-                  <TableCell className="editable-cell text-center">
-                    {renderEditableCell(agent, "addedToday", agent.addedToday)}
-                  </TableCell>
-                  <TableCell className="editable-cell text-center">
-                    {renderEditableCell(agent, "monthlyAdded", agent.monthlyAdded)}
-                  </TableCell>
-                  <TableCell className="editable-cell text-center">
-                    {renderEditableCell(agent, "openAccounts", agent.openAccounts)}
-                  </TableCell>
-                  <TableCell className={`${isAdmin ? "editable-cell" : ""} text-center`}>
-                    {isAdmin ? (
-                      renderEditableCell(agent, "totalDeposits", agent.totalDeposits)
-                    ) : (
-                      <span className="font-medium">${agent.totalDeposits.toLocaleString()}</span>
-                    )}
-                  </TableCell>
-                  <TableCell className={`${isAdmin ? "editable-cell" : ""} text-center`}>
-                    {isAdmin ? (
-                      renderEditableCell(agent, "totalWithdrawals", agent.totalWithdrawals || 0)
-                    ) : (
-                      <span className="font-medium">${(agent.totalWithdrawals || 0).toLocaleString()}</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <div className="flex justify-center">
-                      <Badge className={`${getCommissionTierClass(agent.commissionRate || 0)} transition-all`}>
-                        {agent.commissionRate}% (${agent.commission?.toLocaleString()})
-                      </Badge>
+                </TableCell>
+                <TableCell
+                  className={`${isAdmin ? "editable-cell" : ""} text-center border-l border-slate-100 dark:border-slate-800`}
+                >
+                  {isAdmin ? (
+                    renderEditableCell(agent, "totalWithdrawals", agent.totalWithdrawals || 0)
+                  ) : (
+                    <span className="font-medium">${(agent.totalWithdrawals || 0).toLocaleString()}</span>
+                  )}
+                </TableCell>
+                <TableCell className="text-center border-l border-slate-100 dark:border-slate-800">
+                  <div className="flex justify-center">
+                    <Badge className={`${getCommissionTierClass(agent.commissionRate || 0)} transition-all shadow-sm`}>
+                      {agent.commissionRate}% (${agent.commission?.toLocaleString()})
+                    </Badge>
+                  </div>
+                </TableCell>
+                <TableCell className="text-center border-l border-slate-100 dark:border-slate-800">
+                  {agent.lastEditedBy ? (
+                    <div className="flex flex-col items-center justify-center">
+                      <span className="font-medium">{agent.lastEditedBy}</span>
+                      {agent.lastEditedAt && (
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(agent.lastEditedAt).toLocaleDateString()}
+                        </span>
+                      )}
                     </div>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    {agent.lastEditedBy ? (
-                      <div className="flex flex-col items-center justify-center">
-                        <span className="font-medium">{agent.lastEditedBy}</span>
-                        {agent.lastEditedAt && (
-                          <span className="text-xs text-muted-foreground">
-                            {new Date(agent.lastEditedAt).toLocaleDateString()}
-                          </span>
-                        )}
-                      </div>
-                    ) : (
-                      <span className="text-muted-foreground text-sm">Not edited</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-center">
-                    {!isViewer && (
-                      <div className="flex justify-center">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="hover:bg-muted transition-colors">
-                              <MoreHorizontal className="h-4 w-4" />
-                              <span className="sr-only">Open menu</span>
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleDeleteAgent(agent.id, agent.name)}>
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={!isViewer ? 10 : 9} className="text-center py-8 text-muted-foreground">
-                  No agents found
+                  ) : (
+                    <span className="text-muted-foreground text-sm">Not edited</span>
+                  )}
+                </TableCell>
+                <TableCell className="text-center border-l border-slate-100 dark:border-slate-800">
+                  {!isViewer && (
+                    <div className="flex justify-center">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors rounded-full"
+                          >
+                            <MoreHorizontal className="h-4 w-4" />
+                            <span className="sr-only">Open menu</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleDeleteAgent(agent.id, agent.name)}>
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  )}
                 </TableCell>
               </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
+            ))
+          ) : (
+            <TableRow>
+              <TableCell colSpan={!isViewer ? 10 : 9} className="text-center py-12 text-muted-foreground">
+                <div className="flex flex-col items-center justify-center">
+                  <Users className="h-8 w-8 text-muted-foreground/50 mb-2" />
+                  <p>No agents found</p>
+                </div>
+              </TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
 
       {isRegistrationModalOpen && (
         <AgentRegistrationModal isOpen={isRegistrationModalOpen} onClose={() => setIsRegistrationModalOpen(false)} />

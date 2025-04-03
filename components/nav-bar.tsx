@@ -1,5 +1,7 @@
 "use client"
 
+import type React from "react"
+
 import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useClientContext } from "@/context/client-context"
@@ -14,7 +16,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
@@ -92,29 +93,32 @@ export default function NavBar({ activeTab, setActiveTab }: NavBarProps) {
   }
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-30 bg-background border-b h-16 pl-16 md:pl-64">
+    <div className="fixed top-0 left-0 right-0 z-30 bg-background/80 backdrop-blur-md border-b h-16 pl-16 md:pl-64 shadow-sm">
       <div className="flex items-center justify-between h-full px-4">
-        {/* Left side - Search (smaller on mobile) */}
+        {/* Left side - Search */}
         <div className="relative w-full max-w-[180px] sm:max-w-xs md:max-w-md" ref={searchRef}>
-          <div className="relative">
-            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+          <div className="relative group">
+            <div className="absolute inset-0 bg-primary/5 rounded-md -m-1 group-hover:bg-primary/10 transition-colors duration-200"></div>
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors duration-200" />
             <Input
-              placeholder="Search..."
+              placeholder="Search clients..."
               value={searchTerm}
               onChange={(e) => {
                 setSearchTerm(e.target.value)
                 setShowSearchResults(true)
               }}
-              className="pl-8 w-full text-sm"
+              className="pl-10 w-full text-sm bg-transparent border-muted/50 focus:border-primary/50 transition-all duration-200 rounded-md"
               onFocus={() => setShowSearchResults(true)}
             />
           </div>
           {showSearchResults && searchResults.length > 0 && (
-            <div className="absolute z-50 w-full mt-1 bg-background border rounded-md shadow-lg">
-              {searchResults.map((result) => (
+            <div className="absolute z-50 w-full mt-1 bg-background/95 backdrop-blur-sm border rounded-md shadow-lg animate-fade-in overflow-hidden">
+              {searchResults.map((result, index) => (
                 <div
                   key={result.shopId}
-                  className="p-2 hover:bg-muted cursor-pointer border-b last:border-0"
+                  className={`p-3 hover:bg-primary/5 cursor-pointer transition-colors duration-150 ${
+                    index !== searchResults.length - 1 ? "border-b border-border/50" : ""
+                  }`}
                   onClick={() => handleClientClick(result.shopId)}
                 >
                   <div className="font-medium text-sm">{result.shopId}</div>
@@ -126,89 +130,114 @@ export default function NavBar({ activeTab, setActiveTab }: NavBarProps) {
         </div>
 
         {/* Center - Navigation Links (visible only on larger screens) */}
-        <div className="hidden lg:flex items-center space-x-2 mx-4">
-          <Button
-            variant={activeTab === "dashboard" ? "default" : "ghost"}
-            size="sm"
+        <div className="hidden lg:flex items-center space-x-3 mx-4">
+          <NavButton
+            icon={<Home className="h-4 w-4" />}
+            label="Home"
+            active={activeTab === "dashboard"}
             onClick={() => navigateTo("dashboard")}
-            className={cn(
-              "flex items-center font-medium",
-              activeTab === "dashboard" && "bg-gray-800 text-white hover:bg-gray-700",
-            )}
-          >
-            <Home className="h-4 w-4 mr-2" />
-            Home
-          </Button>
-          <Button
-            variant={activeTab === "team" ? "default" : "ghost"}
-            size="sm"
+          />
+          <NavButton
+            icon={<BarChart3 className="h-4 w-4" />}
+            label="Team"
+            active={activeTab === "team"}
             onClick={() => navigateTo("team")}
-            className={cn(
-              "flex items-center font-medium",
-              activeTab === "team" && "bg-gray-800 text-white hover:bg-gray-700",
-            )}
-          >
-            <BarChart3 className="h-4 w-4 mr-2" />
-            Team
-          </Button>
-          <Button
-            variant={activeTab === "settings" ? "default" : "ghost"}
-            size="sm"
+          />
+          <NavButton
+            icon={<Settings className="h-4 w-4" />}
+            label="Settings"
+            active={activeTab === "settings"}
             onClick={() => navigateTo("settings")}
-            className={cn("flex items-center", activeTab === "settings" && "bg-primary text-primary-foreground")}
-          >
-            <Settings className="h-4 w-4 mr-2" />
-            Settings
-          </Button>
+          />
         </div>
 
-        {/* Right side - Controls (compact on mobile) */}
-        <div className="flex items-center">
-          {/* Notification icon - smaller on mobile */}
-          <div className="scale-90 sm:scale-100">
+        {/* Right side - Controls */}
+        <div className="flex items-center space-x-2">
+          {/* Notification icon */}
+          <div className="relative">
             <NotificationCenter />
           </div>
 
-          {/* Theme toggle - smaller on mobile */}
-          <div className="scale-90 sm:scale-100 mx-1 sm:mx-2">
+          {/* Theme toggle */}
+          <div className="mx-1">
             <ModeToggle />
           </div>
 
-          {/* User dropdown - smaller on mobile */}
-          <div className="scale-90 sm:scale-100">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="rounded-full h-8 w-8">
-                  <Avatar className="h-8 w-8">
+          {/* User dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="rounded-full h-9 w-9 p-0 ml-1 relative overflow-hidden group"
+              >
+                <div className="absolute inset-0 bg-primary/10 scale-0 group-hover:scale-100 transition-transform duration-200 rounded-full"></div>
+                <Avatar className="h-8 w-8 transition-transform group-hover:scale-105 duration-200">
+                  <AvatarImage src={localStorage.getItem("userAvatar") || ""} alt="User avatar" />
+                  <AvatarFallback className="bg-gradient-to-br from-gray-800 to-gray-900 text-white">
+                    {user ? getInitials(user.username) : "??"}
+                  </AvatarFallback>
+                </Avatar>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56 overflow-hidden p-0">
+              <div className="bg-primary/5 dark:bg-primary/10 px-4 py-3">
+                <div className="flex items-center gap-3">
+                  <Avatar className="h-10 w-10 border-2 border-background">
                     <AvatarImage src={localStorage.getItem("userAvatar") || ""} alt="User avatar" />
-                    <AvatarFallback className="bg-gray-800 text-white">
+                    <AvatarFallback className="bg-gradient-to-br from-gray-800 to-gray-900 text-white">
                       {user ? getInitials(user.username) : "??"}
                     </AvatarFallback>
                   </Avatar>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>
-                  <div className="flex flex-col">
-                    <span>{user?.username}</span>
-                    <span className="text-xs text-muted-foreground">{user?.role}</span>
+                  <div>
+                    <p className="font-medium text-sm">{user?.username}</p>
+                    <p className="text-xs text-muted-foreground">{user?.role}</p>
                   </div>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => navigateTo("settings")}>
+                </div>
+              </div>
+              <div className="p-2">
+                <DropdownMenuItem onClick={() => navigateTo("settings")} className="cursor-pointer">
                   <Settings className="mr-2 h-4 w-4" />
                   <span>Settings</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleLogout} className="text-red-500 focus:text-red-500">
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleLogout} className="text-red-500 focus:text-red-500 cursor-pointer">
                   <LogOut className="mr-2 h-4 w-4" />
                   <span>Logout</span>
                 </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+              </div>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </div>
+  )
+}
+
+interface NavButtonProps {
+  icon: React.ReactNode
+  label: string
+  active: boolean
+  onClick: () => void
+}
+
+function NavButton({ icon, label, active, onClick }: NavButtonProps) {
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      onClick={onClick}
+      className={cn(
+        "relative h-9 px-4 transition-all duration-200 overflow-hidden",
+        active ? "text-primary font-medium" : "text-muted-foreground",
+      )}
+    >
+      <div className="flex items-center">
+        <span className={cn("mr-2", active ? "text-primary" : "text-muted-foreground")}>{icon}</span>
+        <span>{label}</span>
+      </div>
+      {active && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-t-full animate-fade-in" />}
+    </Button>
   )
 }
 
