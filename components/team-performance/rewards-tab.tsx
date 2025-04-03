@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useTeamContext } from "@/context/team-context"
-import { useAuth } from "@/context/auth-context" // Add this import
+import { useAuth } from "@/context/auth-context"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -12,27 +12,28 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { format } from "date-fns"
-// Add import for PlusCircle icon
-import { Trash2, CalendarIcon, FileDown, PlusCircle } from "lucide-react"
+import { Trash2, CalendarIcon, FileDown, PlusCircle, RefreshCw } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
+import DataResetModal from "@/components/modals/data-reset-modal"
 
 export default function RewardsTab() {
-  const { agents, rewards, addReward, deleteReward } = useTeamContext()
-  const { isViewer } = useAuth() // Get viewer status
+  const { agents, rewards: existingRewards, addReward, deleteReward } = useTeamContext()
+  const { isViewer, isAdmin } = useAuth() // Get viewer and admin status
   const { toast } = useToast()
 
   const [selectedAgentId, setSelectedAgentId] = useState("")
   const [description, setDescription] = useState("")
-  const [amount, setAmount] = useState(0)
+  const [rewardAmount, setRewards] = useState("")
   const [date, setDate] = useState<Date | undefined>(new Date())
   const [status, setStatus] = useState<"Received" | "Pending" | "Cancelled">("Pending")
-  // Add a state variable to control form visibility
   const [showForm, setShowForm] = useState(false)
 
-  // Modify the handleAddReward function to prevent duplicates
+  // Add state for data reset modal
+  const [showResetModal, setShowResetModal] = useState(false)
+
   const handleAddReward = async () => {
     if (!selectedAgentId) {
       toast({
@@ -52,11 +53,11 @@ export default function RewardsTab() {
       return
     }
 
-    if (amount <= 0) {
+    if (!rewardAmount.trim()) {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Amount must be greater than 0",
+        description: "Please enter a reward value",
       })
       return
     }
@@ -71,7 +72,7 @@ export default function RewardsTab() {
         agentId: selectedAgentId,
         agentName: selectedAgent.name,
         description,
-        amount,
+        amount: rewardAmount,
         date: formattedDate,
         status,
       })
@@ -79,10 +80,9 @@ export default function RewardsTab() {
       // Reset form
       setSelectedAgentId("")
       setDescription("")
-      setAmount(0)
+      setRewards("")
       setDate(new Date())
       setStatus("Pending")
-      // Hide form after submission
       setShowForm(false)
 
       toast({
@@ -108,7 +108,29 @@ export default function RewardsTab() {
     }
   }
 
-  // Get status badge color
+  // Handle data reset
+  const handleDataReset = (resetDate: Date, options: { today: boolean; monthly: boolean; open: boolean }) => {
+    try {
+      // This would be implemented to call your actual data reset API
+      console.log("Resetting data for:", format(resetDate, "yyyy-MM-dd"), options)
+
+      // Show success message
+      toast({
+        title: "Data Reset Complete",
+        description: `Selected data has been reset for ${format(resetDate, "MMMM d, yyyy")}`,
+      })
+
+      // Close the modal
+      setShowResetModal(false)
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Reset Failed",
+        description: (error as Error).message || "An error occurred while resetting data",
+      })
+    }
+  }
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "Received":
@@ -123,9 +145,8 @@ export default function RewardsTab() {
   }
 
   const handleExportCsv = () => {
-    // Create CSV content
-    const headers = ["Date", "Agent", "Description", "Amount", "Status"]
-    const rows = rewards.map((reward) => [
+    const headers = ["Date", "Agent", "Description", "Rewards", "Status"]
+    const rows = existingRewards.map((reward) => [
       reward.date,
       reward.agentName,
       reward.description,
@@ -140,7 +161,6 @@ export default function RewardsTab() {
       ),
     ].join("\n")
 
-    // Create and download the file
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
     const url = URL.createObjectURL(blob)
     const link = document.createElement("a")
@@ -157,10 +177,8 @@ export default function RewardsTab() {
     })
   }
 
-  // Replace the form card with this updated version that includes a toggle button
   return (
     <div className="space-y-6">
-      {/* Only show the add reward button for non-viewers */}
       {!isViewer && (
         <div className="flex justify-end mb-4">
           <Button onClick={() => setShowForm(!showForm)} className="flex items-center gap-2">
@@ -170,7 +188,6 @@ export default function RewardsTab() {
         </div>
       )}
 
-      {/* Only show the add reward form for non-viewers and when showForm is true */}
       {!isViewer && showForm && (
         <Card className="animate-fade-in shadow-sm hover:shadow-md transition-all duration-300">
           <CardHeader>
@@ -213,15 +230,13 @@ export default function RewardsTab() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="amount">Amount ($)</Label>
+                <Label htmlFor="rewards">Rewards</Label>
                 <Input
-                  id="amount"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={amount}
-                  onChange={(e) => setAmount(Number(e.target.value))}
-                  placeholder="0.00"
+                  id="rewards"
+                  type="text"
+                  value={rewardAmount}
+                  onChange={(e) => setRewards(e.target.value)}
+                  placeholder="Enter reward value"
                 />
               </div>
 
@@ -267,10 +282,24 @@ export default function RewardsTab() {
         <CardHeader>
           <div className="flex justify-between items-center">
             <CardTitle>Reward Records</CardTitle>
-            <Button variant="outline" size="sm" onClick={handleExportCsv}>
-              <FileDown className="h-4 w-4 mr-2" />
-              Export CSV
-            </Button>
+            <div className="flex gap-2">
+              {/* Only show Reset Data button for admin users */}
+              {isAdmin && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowResetModal(true)}
+                  className="flex items-center gap-1 bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 hover:text-amber-800 dark:bg-amber-950 dark:text-amber-400 dark:border-amber-800 dark:hover:bg-amber-900"
+                >
+                  <RefreshCw className="h-4 w-4 mr-1" />
+                  Reset Data
+                </Button>
+              )}
+              <Button variant="outline" size="sm" onClick={handleExportCsv}>
+                <FileDown className="h-4 w-4 mr-2" />
+                Export CSV
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -281,19 +310,19 @@ export default function RewardsTab() {
                   <TableHead className="font-medium">Date</TableHead>
                   <TableHead className="font-medium">Agent</TableHead>
                   <TableHead className="font-medium">Description</TableHead>
-                  <TableHead className="font-medium">Amount</TableHead>
+                  <TableHead className="font-medium">Rewards</TableHead>
                   <TableHead className="font-medium">Status</TableHead>
                   {!isViewer && <TableHead className="text-right">Actions</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {rewards.length > 0 ? (
-                  rewards.map((reward) => (
+                {existingRewards.length > 0 ? (
+                  existingRewards.map((reward) => (
                     <TableRow key={reward.id} className="hover:bg-muted/30 transition-colors">
                       <TableCell>{reward.date}</TableCell>
                       <TableCell className="font-medium">{reward.agentName}</TableCell>
                       <TableCell>{reward.description}</TableCell>
-                      <TableCell className="font-medium">${reward.amount.toLocaleString()}</TableCell>
+                      <TableCell className="font-medium">{reward.amount.toLocaleString()}</TableCell>
                       <TableCell>
                         <Badge className={`${getStatusColor(reward.status)} transition-all`}>{reward.status}</Badge>
                       </TableCell>
@@ -324,6 +353,9 @@ export default function RewardsTab() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Data Reset Modal */}
+      <DataResetModal isOpen={showResetModal} onClose={() => setShowResetModal(false)} onReset={handleDataReset} />
     </div>
   )
 }

@@ -29,6 +29,8 @@ export default function AttendanceTab() {
   const [status, setStatus] = useState<"Whole Day" | "Half Day" | "Leave" | "Undertime">("Whole Day")
   // Add a state variable to control form visibility
   const [showForm, setShowForm] = useState(false)
+  const [sortField, setSortField] = useState<string | null>(null)
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc")
 
   // Modify the handleAddAttendance function to prevent duplicates
   const handleAddAttendance = async () => {
@@ -101,6 +103,30 @@ export default function AttendanceTab() {
         return "bg-gray-500"
     }
   }
+
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      // Toggle direction if clicking the same field
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc")
+    } else {
+      // Set new field and default to ascending
+      setSortField(field)
+      setSortDirection("asc")
+    }
+  }
+
+  // Sort the attendance records
+  const sortedAttendance = [...attendance].sort((a, b) => {
+    if (!sortField) return 0
+
+    if (sortField === "date") {
+      const dateA = new Date(a.date).getTime()
+      const dateB = new Date(b.date).getTime()
+      return sortDirection === "asc" ? dateA - dateB : dateB - dateA
+    }
+
+    return 0
+  })
 
   const handleExportCsv = () => {
     // Create CSV content
@@ -240,7 +266,13 @@ export default function AttendanceTab() {
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/50">
-                  <TableHead className="font-medium">Date</TableHead>
+                  <TableHead
+                    className="font-medium cursor-pointer"
+                    onDoubleClick={() => handleSort("date")}
+                    title="Double-click to sort"
+                  >
+                    Date {sortField === "date" && (sortDirection === "asc" ? "↑" : "↓")}
+                  </TableHead>
                   <TableHead className="font-medium">Agent</TableHead>
                   <TableHead className="font-medium">Status</TableHead>
                   <TableHead className="font-medium">Remarks</TableHead>
@@ -248,8 +280,8 @@ export default function AttendanceTab() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {attendance.length > 0 ? (
-                  attendance.map((record) => (
+                {sortedAttendance.length > 0 ? (
+                  sortedAttendance.map((record) => (
                     <TableRow key={record.id} className="hover:bg-muted/30 transition-colors">
                       <TableCell>{record.date}</TableCell>
                       <TableCell className="font-medium">{record.agentName}</TableCell>

@@ -23,6 +23,7 @@ import {
   Edit,
   Check,
   X,
+  RefreshCw,
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import AgentRegistrationModal from "./agent-registration-modal"
@@ -36,6 +37,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import DataResetModal from "@/components/modals/data-reset-modal"
+import { format } from "date-fns"
 
 import "./agent-table.css"
 
@@ -54,6 +57,8 @@ export default function AgentTable() {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false)
   const [selectedAgents, setSelectedAgents] = useState<string[]>([])
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+  // Add state for data reset modal
+  const [isResetModalOpen, setIsResetModalOpen] = useState(false)
 
   // Filter and sort agents
   useEffect(() => {
@@ -215,6 +220,34 @@ export default function AgentTable() {
       title: "Agents deleted",
       description: `${selectedAgents.length} agents have been removed`,
     })
+  }
+
+  // Handle data reset
+  const handleDataReset = (resetDate: Date, options: { today: boolean; monthly: boolean; open: boolean }) => {
+    try {
+      // This would be implemented to call your actual data reset API
+      console.log("Resetting data for:", format(resetDate, "yyyy-MM-dd"), options)
+
+      // Show success message with details of what was reset
+      const resetOptions = []
+      if (options.today) resetOptions.push("Added Today")
+      if (options.monthly) resetOptions.push("Monthly Added")
+      if (options.open) resetOptions.push("Open Accounts")
+
+      toast({
+        title: "Data Reset Complete",
+        description: `Reset ${resetOptions.join(", ")} for ${format(resetDate, "MMMM d, yyyy")}`,
+      })
+
+      // Close the modal
+      setIsResetModalOpen(false)
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Reset Failed",
+        description: (error as Error).message || "An error occurred while resetting data",
+      })
+    }
   }
 
   // Handle select all
@@ -425,6 +458,19 @@ export default function AgentTable() {
             >
               <Trash2 className="h-4 w-4 mr-2" />
               Delete Selected ({selectedAgents.length})
+            </Button>
+          )}
+
+          {/* Add Reset Data button for admin users */}
+          {isAdmin && (
+            <Button
+              onClick={() => setIsResetModalOpen(true)}
+              variant="outline"
+              size="sm"
+              className="animate-fade-in bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 hover:text-amber-800 dark:bg-amber-950 dark:text-amber-400 dark:border-amber-800 dark:hover:bg-amber-900"
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Reset Data
             </Button>
           )}
 
@@ -679,6 +725,9 @@ export default function AgentTable() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Data Reset Modal */}
+      <DataResetModal isOpen={isResetModalOpen} onClose={() => setIsResetModalOpen(false)} onReset={handleDataReset} />
     </div>
   )
 }

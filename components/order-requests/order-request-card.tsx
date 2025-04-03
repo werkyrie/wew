@@ -8,7 +8,18 @@ import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/hooks/use-toast"
 import { motion } from "framer-motion"
-import { CheckCircle, XCircle, Calendar, MapPin, DollarSign, User, Store, MessageSquare, Trash2 } from "lucide-react"
+import {
+  CheckCircle,
+  XCircle,
+  Calendar,
+  MapPin,
+  DollarSign,
+  User,
+  Store,
+  MessageSquare,
+  Trash2,
+  Link,
+} from "lucide-react"
 import type { OrderRequest, OrderRequestStatus } from "@/types/client"
 import { formatCurrency, formatDate } from "@/utils/format-helpers"
 import {
@@ -78,6 +89,16 @@ export default function OrderRequestCard({ request }: OrderRequestCardProps) {
       variant: "default",
     })
     setIsDeleteDialogOpen(false)
+  }
+
+  // Handle share to Telegram
+  const handleShareTelegram = () => {
+    const shareableLink = `${window.location.origin}/order-requests/${request.id}`
+    navigator.clipboard.writeText(shareableLink)
+    toast({
+      title: "Link Copied",
+      description: "Shareable link copied to clipboard!",
+    })
   }
 
   return (
@@ -160,6 +181,16 @@ export default function OrderRequestCard({ request }: OrderRequestCardProps) {
                 </Button>
               </>
             )}
+
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-blue-500 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+              onClick={handleShareTelegram}
+            >
+              <Link className="h-4 w-4 mr-1" />
+              Share to Telegram
+            </Button>
 
             {isAdmin && (
               <Button
