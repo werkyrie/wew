@@ -258,11 +258,7 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
         },
       ],
     },
-  ]
-
-  // Add settings only if not a viewer
-  if (!isViewer) {
-    navStructure.push({
+    {
       title: "System",
       id: "system",
       icon: <Cog className="h-4 w-4" />,
@@ -273,8 +269,24 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
           icon: <Settings className="h-5 w-5" />,
         },
       ],
-    })
-  }
+    },
+  ]
+
+  // Remove conditional that was hiding the System section from viewers
+  // if (!isViewer) {
+  //   navStructure.push({
+  //     title: "System",
+  //     id: "system",
+  //     icon: <Cog className="h-4 w-4" />,
+  //     items: [
+  //       {
+  //         id: "settings",
+  //         label: "Settings",
+  //         icon: <Settings className="h-5 w-5" />,
+  //       },
+  //     ],
+  //   })
+  // }
 
   const navigationSections = useMemo(
     () => [
@@ -352,23 +364,19 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
           },
         ],
       },
-      ...(isViewer
-        ? []
-        : [
-            {
-              title: "System",
-              items: [
-                {
-                  icon: Settings,
-                  label: "Settings",
-                  tab: "settings",
-                  onClick: () => handleTabChange("settings"),
-                },
-              ],
-            },
-          ]),
+      {
+        title: "System",
+        items: [
+          {
+            icon: Settings,
+            label: "Settings",
+            tab: "settings",
+            onClick: () => handleTabChange("settings"),
+          },
+        ],
+      },
     ],
-    [pendingOrderRequests, handleTabChange, isViewer],
+    [pendingOrderRequests, handleTabChange],
   )
 
   // Mobile sidebar using Sheet component

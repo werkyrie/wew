@@ -6,7 +6,7 @@ import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useClientContext } from "@/context/client-context"
 import { useAuth } from "@/context/auth-context"
-import { Home, LogOut, Search, Settings, BarChart3 } from "lucide-react"
+import { LogOut, Search, Settings } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ModeToggle } from "./mode-toggle"
@@ -95,66 +95,47 @@ export default function NavBar({ activeTab, setActiveTab }: NavBarProps) {
   return (
     <div className="fixed top-0 left-0 right-0 z-30 bg-background/80 backdrop-blur-md border-b h-16 pl-16 md:pl-64 shadow-sm">
       <div className="flex items-center justify-between h-full px-4">
-        {/* Left side - Search */}
-        <div className="relative w-full max-w-[180px] sm:max-w-xs md:max-w-md" ref={searchRef}>
-          <div className="relative group">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors duration-200 z-10" />
-            <Input
-              placeholder="Search clients..."
-              value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value)
-                setShowSearchResults(true)
-              }}
-              className="pl-10 w-full text-sm bg-background/80 hover:bg-background/90 focus:bg-background border-muted/50 focus:border-primary/50 transition-all duration-200 rounded-md"
-              onFocus={() => setShowSearchResults(true)}
-            />
-          </div>
-          {showSearchResults && searchResults.length > 0 && (
-            <div className="absolute z-50 w-full mt-1 bg-background/95 backdrop-blur-sm border rounded-md shadow-lg animate-fade-in overflow-hidden">
-              {searchResults.map((result, index) => (
-                <div
-                  key={result.shopId}
-                  className={`p-3 hover:bg-primary/5 cursor-pointer transition-colors duration-150 ${
-                    index !== searchResults.length - 1 ? "border-b border-border/50" : ""
-                  }`}
-                  onClick={() => handleClientClick(result.shopId)}
-                >
-                  <div className="font-medium text-sm">{result.shopId}</div>
-                  <div className="text-xs text-muted-foreground truncate">{result.clientName}</div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Center - Navigation Links (visible only on larger screens) */}
-        <div className="hidden lg:flex items-center space-x-3 mx-4">
-          <NavButton
-            icon={<Home className="h-4 w-4" />}
-            label="Home"
-            active={activeTab === "dashboard"}
-            onClick={() => navigateTo("dashboard")}
-          />
-          <NavButton
-            icon={<BarChart3 className="h-4 w-4" />}
-            label="Team"
-            active={activeTab === "team"}
-            onClick={() => navigateTo("team")}
-          />
-          <NavButton
-            icon={<Settings className="h-4 w-4" />}
-            label="Settings"
-            active={activeTab === "settings"}
-            onClick={() => navigateTo("settings")}
-          />
-        </div>
+        {/* Left side - Empty or can be used for branding */}
+        <div className="flex-1">{/* This space can be used for a logo or brand name if needed */}</div>
 
         {/* Right side - Controls */}
         <div className="flex items-center space-x-2">
           {/* Notification icon */}
           <div className="relative">
             <NotificationCenter />
+          </div>
+
+          {/* Search bar */}
+          <div className="relative w-full max-w-[180px] sm:max-w-xs md:max-w-md mx-2" ref={searchRef}>
+            <div className="relative group">
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors duration-200 z-10" />
+              <Input
+                placeholder="Search clients..."
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value)
+                  setShowSearchResults(true)
+                }}
+                className="pl-10 w-full text-sm bg-background/80 hover:bg-background/90 focus:bg-background border-muted/50 focus:border-primary/50 transition-all duration-200 rounded-md"
+                onFocus={() => setShowSearchResults(true)}
+              />
+            </div>
+            {showSearchResults && searchResults.length > 0 && (
+              <div className="absolute z-50 w-full mt-1 bg-background/95 backdrop-blur-sm border rounded-md shadow-lg animate-fade-in overflow-hidden">
+                {searchResults.map((result, index) => (
+                  <div
+                    key={result.shopId}
+                    className={`p-3 hover:bg-primary/5 cursor-pointer transition-colors duration-150 ${
+                      index !== searchResults.length - 1 ? "border-b border-border/50" : ""
+                    }`}
+                    onClick={() => handleClientClick(result.shopId)}
+                  >
+                    <div className="font-medium text-sm">{result.shopId}</div>
+                    <div className="text-xs text-muted-foreground truncate">{result.clientName}</div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Theme toggle */}
