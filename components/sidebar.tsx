@@ -73,7 +73,7 @@ const NavItem = React.memo(({ icon: Icon, label, active, onClick, badge, collaps
 
 export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false)
-  const [isMobile, setIsMobile] = useState(false)
+  const [isMobile, setIsMobile] = useState(isMobileInit())
   const [isSheetOpen, setIsSheetOpen] = useState(false)
   const [expandedGroups, setExpandedGroups] = useState({
     dashboard: true,
@@ -88,6 +88,13 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
 
   // Calculate pending order requests
   const pendingOrderRequests = orderRequests?.filter((request) => request.status === "Pending")?.length || 0
+
+  function isMobileInit() {
+    if (typeof window !== "undefined") {
+      return window.innerWidth < 768
+    }
+    return false
+  }
 
   // Check if mobile on mount and when window resizes
   useEffect(() => {
@@ -549,18 +556,9 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
                   />
                 </div>
               )}
-              {collapsed && (
-                <div className="flex justify-center mb-2">
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <div className="h-6 w-6 flex items-center justify-center text-muted-foreground">{group.icon}</div>
-                    </TooltipTrigger>
-                    <TooltipContent side="right">{group.title}</TooltipContent>
-                  </Tooltip>
-                </div>
-              )}
+              {/* Section headers are not shown when collapsed */}
               {(expandedGroups[group.id as keyof typeof expandedGroups] || collapsed) && (
-                <ul className={cn("space-y-1", collapsed ? "px-2" : "px-3 mt-1")}>
+                <ul className={cn("space-y-1", collapsed ? "px-2 mb-4" : "px-3 mt-1")}>
                   {group.items.map((item) => (
                     <li key={item.id}>
                       {collapsed ? (

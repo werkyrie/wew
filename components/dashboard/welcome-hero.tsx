@@ -2,18 +2,13 @@
 
 import { useEffect, useState, useMemo } from "react"
 import { Card } from "@/components/ui/card"
-import { useClientContext } from "@/context/client-context"
 import { useTheme } from "next-themes"
 import { motion } from "framer-motion"
 import { useAuth } from "@/context/auth-context"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { ArrowUpRight, Calendar, Clock, Users, ShoppingBag, CreditCard, DollarSign, Sparkles } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { useRouter } from "next/navigation"
+import { Calendar, Clock, Sparkles } from "lucide-react"
 
 export default function WelcomeHero() {
-  const router = useRouter()
-  const { clients, orders, deposits, withdrawals } = useClientContext()
   const { user } = useAuth()
   const [currentTime, setCurrentTime] = useState(new Date())
   const { theme } = useTheme()
@@ -112,53 +107,16 @@ export default function WelcomeHero() {
     return "User"
   }
 
-  // Get today's stats
-  const todayStats = useMemo(() => {
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-
-    const todayClients = clients?.filter((c) => new Date(c.createdAt) >= today).length || 0
-    const todayOrders = orders?.filter((o) => new Date(o.date) >= today).length || 0
-    const todayDeposits = deposits?.filter((d) => new Date(d.date) >= today).length || 0
-    const todayWithdrawals = withdrawals?.filter((w) => new Date(w.date) >= today).length || 0
-
-    const todayDepositAmount =
-      deposits?.filter((d) => new Date(d.date) >= today).reduce((sum, d) => sum + d.amount, 0) || 0
-
-    const todayWithdrawalAmount =
-      withdrawals?.filter((w) => new Date(w.date) >= today).reduce((sum, w) => sum + w.amount, 0) || 0
-
-    return {
-      clients: todayClients,
-      orders: todayOrders,
-      deposits: todayDeposits,
-      withdrawals: todayWithdrawals,
-      depositAmount: todayDepositAmount,
-      withdrawalAmount: todayWithdrawalAmount,
-      netAmount: todayDepositAmount - todayWithdrawalAmount,
-    }
-  }, [clients, orders, deposits, withdrawals])
-
-  // Format currency
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount)
-  }
-
   return (
     <div className="space-y-4">
       <Card className="border-none shadow-md overflow-hidden">
         <div className="relative">
-          {/* Background gradient with pattern */}
+          {/* Background gradient with pattern - changed to black and white */}
           <div
             className={`absolute inset-0 ${
               theme === "dark"
-                ? "bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900"
-                : "bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50"
+                ? "bg-gradient-to-r from-black via-gray-900 to-black"
+                : "bg-gradient-to-r from-gray-50 via-white to-gray-50"
             }`}
           >
             {/* Decorative pattern */}
@@ -182,9 +140,7 @@ export default function WelcomeHero() {
                 <div className="relative">
                   <Avatar className="h-16 w-16 border-4 border-background shadow-lg">
                     <AvatarImage src={user?.image} alt={user?.name || "User"} />
-                    <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white text-xl">
-                      {getUserInitials()}
-                    </AvatarFallback>
+                    <AvatarFallback className="bg-black text-white text-xl">{getUserInitials()}</AvatarFallback>
                   </Avatar>
                   {showSparkle && (
                     <motion.div
@@ -193,7 +149,7 @@ export default function WelcomeHero() {
                       animate={{ scale: 1, rotate: 0 }}
                       transition={{ type: "spring", stiffness: 260, damping: 20 }}
                     >
-                      <Sparkles className="h-6 w-6 text-yellow-400 drop-shadow-md" />
+                      <Sparkles className="h-6 w-6 text-gray-400 drop-shadow-md" />
                     </motion.div>
                   )}
                 </div>
@@ -220,97 +176,12 @@ export default function WelcomeHero() {
                 </div>
               </div>
 
-              {/* Right side - Time and quick actions */}
-              <div className="flex flex-col items-end gap-2">
-                <div className="flex items-center gap-2 text-lg font-medium">
-                  <Clock className="h-5 w-5 text-muted-foreground" />
-                  <span>{formattedTime}</span>
-                </div>
-                <div className="flex gap-2">
-                  <Button size="sm" variant="outline" className="gap-1" onClick={() => router.push("/?tab=clients")}>
-                    <Users className="h-4 w-4" />
-                    <span className="hidden sm:inline">Clients</span>
-                    <ArrowUpRight className="h-3 w-3" />
-                  </Button>
-                  <Button size="sm" variant="outline" className="gap-1" onClick={() => router.push("/?tab=orders")}>
-                    <ShoppingBag className="h-4 w-4" />
-                    <span className="hidden sm:inline">Orders</span>
-                    <ArrowUpRight className="h-3 w-3" />
-                  </Button>
-                </div>
+              {/* Right side - Time only */}
+              <div className="flex items-center gap-2 text-lg font-medium">
+                <Clock className="h-5 w-5 text-muted-foreground" />
+                <span>{formattedTime}</span>
               </div>
             </div>
-
-            {/* Stats summary */}
-            <motion.div
-              className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.2 }}
-            >
-              <div
-                className={`p-4 rounded-lg ${theme === "dark" ? "bg-slate-800/50" : "bg-white/70"} backdrop-blur-sm border border-slate-200 dark:border-slate-700`}
-              >
-                <div className="flex items-center gap-2 mb-2">
-                  <Users className="h-5 w-5 text-blue-500" />
-                  <span className="font-medium">Today's Clients</span>
-                </div>
-                <div className="text-2xl font-bold">{todayStats.clients}</div>
-              </div>
-
-              <div
-                className={`p-4 rounded-lg ${theme === "dark" ? "bg-slate-800/50" : "bg-white/70"} backdrop-blur-sm border border-slate-200 dark:border-slate-700`}
-              >
-                <div className="flex items-center gap-2 mb-2">
-                  <ShoppingBag className="h-5 w-5 text-indigo-500" />
-                  <span className="font-medium">Today's Orders</span>
-                </div>
-                <div className="text-2xl font-bold">{todayStats.orders}</div>
-              </div>
-
-              <div
-                className={`p-4 rounded-lg ${theme === "dark" ? "bg-slate-800/50" : "bg-white/70"} backdrop-blur-sm border border-slate-200 dark:border-slate-700`}
-              >
-                <div className="flex items-center gap-2 mb-2">
-                  <CreditCard className="h-5 w-5 text-green-500" />
-                  <span className="font-medium">Today's Deposits</span>
-                </div>
-                <div className="text-2xl font-bold">{formatCurrency(todayStats.depositAmount)}</div>
-              </div>
-
-              <div
-                className={`p-4 rounded-lg ${theme === "dark" ? "bg-slate-800/50" : "bg-white/70"} backdrop-blur-sm border border-slate-200 dark:border-slate-700`}
-              >
-                <div className="flex items-center gap-2 mb-2">
-                  <DollarSign className="h-5 w-5 text-red-500" />
-                  <span className="font-medium">Today's Withdrawals</span>
-                </div>
-                <div className="text-2xl font-bold">{formatCurrency(todayStats.withdrawalAmount)}</div>
-              </div>
-            </motion.div>
-
-            {/* Net amount for today */}
-            <motion.div
-              className="mt-4"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.3 }}
-            >
-              <div
-                className={`p-4 rounded-lg ${theme === "dark" ? "bg-slate-800/50" : "bg-white/70"} backdrop-blur-sm border border-slate-200 dark:border-slate-700`}
-              >
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium text-lg">Today's Net Amount</span>
-                  </div>
-                  <div
-                    className={`text-2xl font-bold ${todayStats.netAmount >= 0 ? "text-green-500" : "text-red-500"}`}
-                  >
-                    {formatCurrency(todayStats.netAmount)}
-                  </div>
-                </div>
-              </div>
-            </motion.div>
           </div>
         </div>
       </Card>
