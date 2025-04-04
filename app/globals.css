@@ -91,6 +91,7 @@
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
+    font-family: "Inter", sans-serif;
   }
 }
 
@@ -181,8 +182,8 @@
 
 /* Custom scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -319,6 +320,35 @@
   width: 4rem;
   opacity: 0.95;
   transition: width 0.2s ease-out, opacity 0.2s ease-out, transform 0.2s ease-out;
+}
+
+/* Sidebar navigation improvements */
+.sidebar-nav-group {
+  @apply py-1;
+}
+
+.sidebar-nav-group-title {
+  @apply text-xs font-medium text-muted-foreground uppercase tracking-wider px-4 py-2;
+}
+
+.sidebar-nav-item {
+  @apply flex items-center px-3 py-2 text-sm rounded-md transition-colors duration-200;
+}
+
+.sidebar-nav-item:hover {
+  @apply bg-muted/50;
+}
+
+.sidebar-nav-item.active {
+  @apply bg-primary text-primary-foreground font-medium;
+}
+
+.sidebar-nav-item-icon {
+  @apply mr-3 text-muted-foreground;
+}
+
+.sidebar-nav-item.active .sidebar-nav-item-icon {
+  @apply text-primary-foreground;
 }
 
 /* Editable cell styles */

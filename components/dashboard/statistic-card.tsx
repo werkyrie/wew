@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 import type { LucideIcon } from "lucide-react"
+import { memo } from "react"
 
 interface StatisticCardProps {
   title: string
@@ -15,7 +16,8 @@ interface StatisticCardProps {
   iconColor?: string
 }
 
-export default function StatisticCard({
+// Memoize the component to prevent unnecessary re-renders
+const StatisticCard = memo(function StatisticCard({
   title,
   value,
   description,
@@ -25,7 +27,7 @@ export default function StatisticCard({
   iconColor = "text-primary",
 }: StatisticCardProps) {
   return (
-    <Card className={cn("overflow-hidden statistic-card", className)}>
+    <Card className={cn("overflow-hidden statistic-card", className)} style={{ contain: "content" }}>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-sm font-medium">{title}</CardTitle>
         <Icon className={cn("h-4 w-4", iconColor)} />
@@ -44,5 +46,7 @@ export default function StatisticCard({
       </CardContent>
     </Card>
   )
-}
+})
+
+export default StatisticCard
 

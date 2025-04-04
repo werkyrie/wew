@@ -98,8 +98,7 @@ export default function NavBar({ activeTab, setActiveTab }: NavBarProps) {
         {/* Left side - Search */}
         <div className="relative w-full max-w-[180px] sm:max-w-xs md:max-w-md" ref={searchRef}>
           <div className="relative group">
-            <div className="absolute inset-0 bg-primary/5 rounded-md -m-1 group-hover:bg-primary/10 transition-colors duration-200"></div>
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors duration-200" />
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors duration-200 z-10" />
             <Input
               placeholder="Search clients..."
               value={searchTerm}
@@ -107,7 +106,7 @@ export default function NavBar({ activeTab, setActiveTab }: NavBarProps) {
                 setSearchTerm(e.target.value)
                 setShowSearchResults(true)
               }}
-              className="pl-10 w-full text-sm bg-transparent border-muted/50 focus:border-primary/50 transition-all duration-200 rounded-md"
+              className="pl-10 w-full text-sm bg-background/80 hover:bg-background/90 focus:bg-background border-muted/50 focus:border-primary/50 transition-all duration-200 rounded-md"
               onFocus={() => setShowSearchResults(true)}
             />
           </div>
