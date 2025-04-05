@@ -12,15 +12,16 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { format } from "date-fns"
-import { Trash2, CalendarIcon, FileDown, PlusCircle, RefreshCw } from "lucide-react"
+import { Trash2, CalendarIcon, FileDown, PlusCircle, RefreshCw, Pencil, X, Check } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
 import DataResetModal from "@/components/modals/data-reset-modal"
+import type { Reward } from "@/types/team"
 
 export default function RewardsTab() {
-  const { agents, rewards: existingRewards, addReward, deleteReward } = useTeamContext()
+  const { agents, rewards: existingRewards, addReward, deleteReward, updateReward } = useTeamContext()
   const { isViewer, isAdmin } = useAuth() // Get viewer and admin status
   const { toast } = useToast()
 
@@ -33,6 +34,20 @@ export default function RewardsTab() {
 
   // Add state for data reset modal
   const [showResetModal, setShowResetModal] = useState(false)
+
+  // Add state for editing
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editData, setEditData] = useState<{
+    description: string
+    amount: string
+    date: Date | undefined
+    status: "Received" | "Pending" | "Cancelled"
+  }>({
+    description: "",
+    amount: "",
+    date: undefined,
+    status: "Pending",
+  })
 
   const handleAddReward = async () => {
     if (!selectedAgentId) {
@@ -177,6 +192,75 @@ export default function RewardsTab() {
     })
   }
 
+  // Start editing a reward
+  const handleStartEdit = (reward: Reward) => {
+    setEditingId(reward.id)
+    setEditData({
+      description: reward.description,
+      amount: reward.amount.toString(),
+      date: reward.date ? new Date(reward.date) : undefined,
+      status: reward.status,
+    })
+  }
+
+  // Cancel editing
+  const handleCancelEdit = () => {
+    setEditingId(null)
+    setEditData({
+      description: "",
+      amount: "",
+      date: undefined,
+      status: "Pending",
+    })
+  }
+
+  // Save edited reward
+  const handleSaveEdit = async (reward: Reward) => {
+    if (!editData.description.trim()) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Description cannot be empty",
+      })
+      return
+    }
+
+    if (!editData.amount.trim()) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Reward amount cannot be empty",
+      })
+      return
+    }
+
+    try {
+      const formattedDate = editData.date ? format(editData.date, "yyyy-MM-dd") : reward.date
+
+      const updatedReward: Reward = {
+        ...reward,
+        description: editData.description,
+        amount: editData.amount,
+        date: formattedDate,
+        status: editData.status,
+      }
+
+      await updateReward(updatedReward)
+      setEditingId(null)
+
+      toast({
+        title: "Reward Updated",
+        description: `Reward for ${reward.agentName} has been updated`,
+      })
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: (error as Error).message || "Failed to update reward",
+      })
+    }
+  }
+
   return (
     <div className="space-y-6">
       {!isViewer && (
@@ -319,24 +403,128 @@ export default function RewardsTab() {
                 {existingRewards.length > 0 ? (
                   existingRewards.map((reward) => (
                     <TableRow key={reward.id} className="hover:bg-muted/30 transition-colors">
-                      <TableCell>{reward.date}</TableCell>
-                      <TableCell className="font-medium">{reward.agentName}</TableCell>
-                      <TableCell>{reward.description}</TableCell>
-                      <TableCell className="font-medium">{reward.amount.toLocaleString()}</TableCell>
                       <TableCell>
-                        <Badge className={`${getStatusColor(reward.status)} transition-all`}>{reward.status}</Badge>
+                        {editingId === reward.id ? (
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant={"outline"}
+                                className={cn(
+                                  "w-full justify-start text-left font-normal",
+                                  !editData.date && "text-muted-foreground",
+                                )}
+                              >
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {editData.date ? format(editData.date, "PPP") : <span>Pick a date</span>}
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0">
+                              <Calendar
+                                mode="single"
+                                selected={editData.date}
+                                onSelect={(date) => setEditData({ ...editData, date })}
+                                initialFocus
+                              />
+                            </PopoverContent>
+                          </Popover>
+                        ) : (
+                          reward.date
+                        )}
+                      </TableCell>
+                      <TableCell className="font-medium">{reward.agentName}</TableCell>
+                      <TableCell>
+                        {editingId === reward.id ? (
+                          <Textarea
+                            value={editData.description}
+                            onChange={(e) => setEditData({ ...editData, description: e.target.value })}
+                            className="min-h-[60px]"
+                          />
+                        ) : (
+                          reward.description
+                        )}
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        {editingId === reward.id ? (
+                          <Input
+                            type="text"
+                            value={editData.amount}
+                            onChange={(e) => setEditData({ ...editData, amount: e.target.value })}
+                          />
+                        ) : (
+                          reward.amount.toLocaleString()
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {editingId === reward.id ? (
+                          <Select
+                            value={editData.status}
+                            onValueChange={(value) =>
+                              setEditData({
+                                ...editData,
+                                status: value as "Received" | "Pending" | "Cancelled",
+                              })
+                            }
+                          >
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Select status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Received">Received</SelectItem>
+                              <SelectItem value="Pending">Pending</SelectItem>
+                              <SelectItem value="Cancelled">Cancelled</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <Badge className={`${getStatusColor(reward.status)} transition-all`}>{reward.status}</Badge>
+                        )}
                       </TableCell>
                       {!isViewer && (
                         <TableCell className="text-right">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDeleteReward(reward.id, reward.agentName)}
-                            className="hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/20"
-                          >
-                            <Trash2 className="h-4 w-4 text-red-500" />
-                            <span className="sr-only">Delete</span>
-                          </Button>
+                          {editingId === reward.id ? (
+                            <div className="flex justify-end gap-2">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleSaveEdit(reward)}
+                                className="hover:bg-green-100 hover:text-green-600 dark:hover:bg-green-900/20"
+                              >
+                                <Check className="h-4 w-4 text-green-500" />
+                                <span className="sr-only">Save</span>
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={handleCancelEdit}
+                                className="hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/20"
+                              >
+                                <X className="h-4 w-4 text-red-500" />
+                                <span className="sr-only">Cancel</span>
+                              </Button>
+                            </div>
+                          ) : (
+                            <div className="flex justify-end gap-2">
+                              {isAdmin && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleStartEdit(reward)}
+                                  className="hover:bg-blue-100 hover:text-blue-600 dark:hover:bg-blue-900/20"
+                                >
+                                  <Pencil className="h-4 w-4 text-blue-500" />
+                                  <span className="sr-only">Edit</span>
+                                </Button>
+                              )}
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleDeleteReward(reward.id, reward.agentName)}
+                                className="hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/20"
+                              >
+                                <Trash2 className="h-4 w-4 text-red-500" />
+                                <span className="sr-only">Delete</span>
+                              </Button>
+                            </div>
+                          )}
                         </TableCell>
                       )}
                     </TableRow>

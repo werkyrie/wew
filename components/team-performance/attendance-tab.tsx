@@ -12,15 +12,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { format } from "date-fns"
 // Add import for PlusCircle icon
-import { Trash2, CalendarIcon, FileDown, PlusCircle } from "lucide-react"
+import { Trash2, CalendarIcon, FileDown, PlusCircle, Pencil, X, Check } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
+import type { Attendance } from "@/types/team"
 
 export default function AttendanceTab() {
-  const { agents, attendance, addAttendance, deleteAttendance } = useTeamContext()
-  const { isViewer } = useAuth()
+  const { agents, attendance, addAttendance, deleteAttendance, updateAttendance } = useTeamContext()
+  const { isViewer, isAdmin } = useAuth()
   const { toast } = useToast()
 
   const [selectedAgentId, setSelectedAgentId] = useState("")
@@ -31,6 +32,18 @@ export default function AttendanceTab() {
   const [showForm, setShowForm] = useState(false)
   const [sortField, setSortField] = useState<string | null>(null)
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc")
+
+  // Add state for editing
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editData, setEditData] = useState<{
+    remarks: string
+    date: Date | undefined
+    status: "Whole Day" | "Half Day" | "Leave" | "Undertime"
+  }>({
+    remarks: "",
+    date: undefined,
+    status: "Whole Day",
+  })
 
   // Modify the handleAddAttendance function to prevent duplicates
   const handleAddAttendance = async () => {
@@ -155,6 +168,54 @@ export default function AttendanceTab() {
       title: "Export Successful",
       description: "Absences data has been exported to CSV",
     })
+  }
+
+  // Start editing an attendance record
+  const handleStartEdit = (record: Attendance) => {
+    setEditingId(record.id)
+    setEditData({
+      remarks: record.remarks,
+      date: record.date ? new Date(record.date) : undefined,
+      status: record.status,
+    })
+  }
+
+  // Cancel editing
+  const handleCancelEdit = () => {
+    setEditingId(null)
+    setEditData({
+      remarks: "",
+      date: undefined,
+      status: "Whole Day",
+    })
+  }
+
+  // Save edited attendance record
+  const handleSaveEdit = async (record: Attendance) => {
+    try {
+      const formattedDate = editData.date ? format(editData.date, "yyyy-MM-dd") : record.date
+
+      const updatedAttendance: Attendance = {
+        ...record,
+        remarks: editData.remarks,
+        date: formattedDate,
+        status: editData.status,
+      }
+
+      await updateAttendance(updatedAttendance)
+      setEditingId(null)
+
+      toast({
+        title: "Absence Record Updated",
+        description: `Absence record for ${record.agentName} has been updated`,
+      })
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: (error as Error).message || "Failed to update absence record",
+      })
+    }
   }
 
   // Replace the form card with this updated version that includes a toggle button
@@ -283,23 +344,118 @@ export default function AttendanceTab() {
                 {sortedAttendance.length > 0 ? (
                   sortedAttendance.map((record) => (
                     <TableRow key={record.id} className="hover:bg-muted/30 transition-colors">
-                      <TableCell>{record.date}</TableCell>
+                      <TableCell>
+                        {editingId === record.id ? (
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant={"outline"}
+                                className={cn(
+                                  "w-full justify-start text-left font-normal",
+                                  !editData.date && "text-muted-foreground",
+                                )}
+                              >
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {editData.date ? format(editData.date, "PPP") : <span>Pick a date</span>}
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0">
+                              <Calendar
+                                mode="single"
+                                selected={editData.date}
+                                onSelect={(date) => setEditData({ ...editData, date })}
+                                initialFocus
+                              />
+                            </PopoverContent>
+                          </Popover>
+                        ) : (
+                          record.date
+                        )}
+                      </TableCell>
                       <TableCell className="font-medium">{record.agentName}</TableCell>
                       <TableCell>
-                        <Badge className={getStatusColor(record.status)}>{record.status}</Badge>
+                        {editingId === record.id ? (
+                          <Select
+                            value={editData.status}
+                            onValueChange={(value) =>
+                              setEditData({
+                                ...editData,
+                                status: value as "Whole Day" | "Half Day" | "Leave" | "Undertime",
+                              })
+                            }
+                          >
+                            <SelectTrigger className="w-full">
+                              <SelectValue placeholder="Select status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Whole Day">Whole Day</SelectItem>
+                              <SelectItem value="Half Day">Half Day</SelectItem>
+                              <SelectItem value="Leave">Leave</SelectItem>
+                              <SelectItem value="Undertime">Undertime</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <Badge className={getStatusColor(record.status)}>{record.status}</Badge>
+                        )}
                       </TableCell>
-                      <TableCell>{record.remarks}</TableCell>
+                      <TableCell>
+                        {editingId === record.id ? (
+                          <Textarea
+                            value={editData.remarks}
+                            onChange={(e) => setEditData({ ...editData, remarks: e.target.value })}
+                            className="min-h-[60px]"
+                          />
+                        ) : (
+                          record.remarks
+                        )}
+                      </TableCell>
                       {!isViewer && (
                         <TableCell className="text-right">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDeleteAttendance(record.id, record.agentName)}
-                            className="hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/20"
-                          >
-                            <Trash2 className="h-4 w-4 text-red-500" />
-                            <span className="sr-only">Delete</span>
-                          </Button>
+                          {editingId === record.id ? (
+                            <div className="flex justify-end gap-2">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleSaveEdit(record)}
+                                className="hover:bg-green-100 hover:text-green-600 dark:hover:bg-green-900/20"
+                              >
+                                <Check className="h-4 w-4 text-green-500" />
+                                <span className="sr-only">Save</span>
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={handleCancelEdit}
+                                className="hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/20"
+                              >
+                                <X className="h-4 w-4 text-red-500" />
+                                <span className="sr-only">Cancel</span>
+                              </Button>
+                            </div>
+                          ) : (
+                            <div className="flex justify-end gap-2">
+                              {isAdmin && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleStartEdit(record)}
+                                  className="hover:bg-blue-100 hover:text-blue-600 dark:hover:bg-blue-900/20"
+                                >
+                                  <Pencil className="h-4 w-4 text-blue-500" />
+                                  <span className="sr-only">Edit</span>
+                                </Button>
+                              )}
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleDeleteAttendance(record.id, record.agentName)}
+                                className="hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/20"
+                              >
+                                <Trash2 className="h-4 w-4 text-red-500" />
+                                <span className="sr-only">Delete</span>
+                              </Button>
+                            </div>
+                          )}
                         </TableCell>
                       )}
                     </TableRow>

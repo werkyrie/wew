@@ -1,3 +1,5 @@
+// Replace the entire file with a simplified version that's easier to use
+
 "use client"
 
 import type React from "react"
@@ -7,7 +9,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from "@/hooks/use-toast"
 import {
   Loader2,
@@ -21,12 +22,18 @@ import {
   Upload,
   AlertCircle,
   CheckCircle2,
+  ChevronDown,
+  ChevronUp,
+  Sparkles,
+  Save,
 } from "lucide-react"
 import { useAuth } from "@/context/auth-context"
 import { useTeamContext } from "@/context/team-context"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
+import { Progress } from "@/components/ui/progress"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 // Client interface
 interface Client {
@@ -52,6 +59,22 @@ interface ReportData {
 interface DateRange {
   from?: Date
   to?: Date
+}
+
+// Templates for quick filling
+const TEMPLATES = {
+  conversationSummary: [
+    "Client expressed interest in our premium package. Discussed benefits and pricing options.",
+    "Addressed client's concerns about security. Explained our protection measures and guarantees.",
+    "Client is considering upgrading their current plan. Provided comparison of features.",
+    "First contact with client. Introduced our services and collected basic requirements.",
+  ],
+  planForTomorrow: [
+    "Follow up with pricing quote and detailed feature list as requested.",
+    "Schedule a demo call to showcase the platform's capabilities.",
+    "Send additional information about security features and compliance certificates.",
+    "Check in to answer any remaining questions and assist with decision making.",
+  ],
 }
 
 // Initial empty client template
@@ -84,15 +107,87 @@ export default function ReportsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [reportData, setReportData] = useState<any>(null)
   const [reportClients, setReportClients] = useState<Client[]>([emptyClient()])
-  const [activeTabIndex, setActiveTabIndex] = useState<number>(0)
-  const [clientTabs, setClientTabs] = useState<{ [key: string]: string }>({})
-  const [validationErrors, setValidationErrors] = useState<{ [key: string]: boolean }>({})
+  const [expandedSections, setExpandedSections] = useState<{ [key: string]: boolean }>({
+    agentInfo: true,
+    clients: true,
+    report: false,
+  })
+  const [expandedClients, setExpandedClients] = useState<{ [key: string]: boolean }>({})
+  const [validationErrors, setValidationErrors] = useState<{ [key: string]: string[] }>({})
+  const [completionPercentage, setCompletionPercentage] = useState<number>(0)
+  const [lastSaved, setLastSaved] = useState<string>("")
+
+  // Toggle section expansion
+  const toggleSection = (section: string) => {
+    setExpandedSections({
+      ...expandedSections,
+      [section]: !expandedSections[section],
+    })
+  }
+
+  // Toggle client expansion
+  const toggleClient = (clientId: string) => {
+    setExpandedClients({
+      ...expandedClients,
+      [clientId]: !expandedClients[clientId],
+    })
+  }
+
+  // Calculate completion percentage
+  useEffect(() => {
+    let totalFields = 5 // Agent fields
+    let completedFields = 0
+
+    // Count agent fields
+    if (agentName) completedFields++
+    if (addedToday) completedFields++
+    if (monthlyAdded) completedFields++
+    if (openShops) completedFields++
+    if (agentDeposits) completedFields++
+
+    // Count client fields (each client has 5 fields, but only 2 are required)
+    reportClients.forEach((client) => {
+      totalFields += 2 // Only count required fields
+      if (client.conversationSummary) completedFields++
+      if (client.planForTomorrow) completedFields++
+    })
+
+    const percentage = Math.round((completedFields / totalFields) * 100)
+    setCompletionPercentage(percentage)
+  }, [agentName, addedToday, monthlyAdded, openShops, agentDeposits, reportClients])
+
+  // Initialize expanded clients state when clients change
+  useEffect(() => {
+    const newExpandedClients: { [key: string]: boolean } = {}
+    reportClients.forEach((client) => {
+      // If this is a new client, expand it by default
+      if (expandedClients[client.id] === undefined) {
+        newExpandedClients[client.id] = true
+      } else {
+        newExpandedClients[client.id] = expandedClients[client.id]
+      }
+    })
+    setExpandedClients(newExpandedClients)
+  }, [reportClients])
 
   // Add a new client
   const addClient = () => {
     const newClient = emptyClient()
     setReportClients([...reportClients, newClient])
-    setClientTabs({ ...clientTabs, [newClient.id]: "basic" })
+
+    // Auto-expand the new client
+    setExpandedClients({
+      ...expandedClients,
+      [newClient.id]: true,
+    })
+
+    // Scroll to the new client after a short delay
+    setTimeout(() => {
+      const element = document.getElementById(`client-${newClient.id}`)
+      if (element) {
+        element.scrollIntoView({ behavior: "smooth" })
+      }
+    }, 100)
   }
 
   // Remove a client
@@ -108,10 +203,10 @@ export default function ReportsPage() {
 
     setReportClients(reportClients.filter((client) => client.id !== id))
 
-    // Remove from tabs and validation errors
-    const newClientTabs = { ...clientTabs }
-    delete newClientTabs[id]
-    setClientTabs(newClientTabs)
+    // Remove from expanded clients and validation errors
+    const newExpandedClients = { ...expandedClients }
+    delete newExpandedClients[id]
+    setExpandedClients(newExpandedClients)
 
     const newValidationErrors = { ...validationErrors }
     delete newValidationErrors[id]
@@ -123,31 +218,66 @@ export default function ReportsPage() {
     setReportClients(reportClients.map((client) => (client.id === id ? { ...client, [field]: value } : client)))
 
     // Clear validation error when field is filled
-    if (value && validationErrors[id]) {
-      const newValidationErrors = { ...validationErrors }
-      delete newValidationErrors[id]
-      setValidationErrors(newValidationErrors)
+    if (value && validationErrors[id] && validationErrors[id].includes(field)) {
+      const newErrors = { ...validationErrors }
+      newErrors[id] = newErrors[id].filter((f) => f !== field)
+      if (newErrors[id].length === 0) {
+        delete newErrors[id]
+      }
+      setValidationErrors(newErrors)
     }
+
+    // Auto-save after a short delay
+    saveReportData()
   }
 
-  // Set active tab for a client
-  const setActiveTab = (clientId: string, tab: string) => {
-    setClientTabs({ ...clientTabs, [clientId]: tab })
+  // Apply a template to a field
+  const applyTemplate = (clientId: string, field: "conversationSummary" | "planForTomorrow", template: string) => {
+    updateClient(clientId, field, template)
+    toast({
+      title: "Template applied",
+      description: "You can edit the text to customize it further",
+    })
   }
 
-  // Check if client has plan information
-  const clientHasPlanInfo = (client: Client) => {
+  // Check if client has required information
+  const clientHasRequiredInfo = (client: Client) => {
     return Boolean(client.conversationSummary.trim() && client.planForTomorrow.trim())
   }
 
-  // Validate all clients have plan information
-  const validateClientPlans = () => {
-    const errors: { [key: string]: boolean } = {}
+  // Get client completion status
+  const getClientCompletionStatus = (client: Client) => {
+    let completed = 0
+    const total = 2 // Only count required fields
+
+    if (client.conversationSummary) completed++
+    if (client.planForTomorrow) completed++
+
+    return {
+      completed,
+      total,
+      percentage: Math.round((completed / total) * 100),
+    }
+  }
+
+  // Validate all clients have required information
+  const validateClientInfo = () => {
+    const errors: { [key: string]: string[] } = {}
     let hasErrors = false
 
     reportClients.forEach((client) => {
-      if (!clientHasPlanInfo(client)) {
-        errors[client.id] = true
+      const clientErrors: string[] = []
+
+      if (!client.conversationSummary.trim()) {
+        clientErrors.push("conversationSummary")
+      }
+
+      if (!client.planForTomorrow.trim()) {
+        clientErrors.push("planForTomorrow")
+      }
+
+      if (clientErrors.length > 0) {
+        errors[client.id] = clientErrors
         hasErrors = true
       }
     })
@@ -156,15 +286,18 @@ export default function ReportsPage() {
 
     if (hasErrors) {
       toast({
-        title: "Missing plan information",
-        description: "Please fill out the Conversation Summary and Plan for Tomorrow for all clients",
+        title: "Missing required information",
+        description: "Please fill out all required fields marked with *",
         variant: "destructive",
       })
 
-      // Switch to plan tab for the first client with an error
+      // Expand the first client with errors
       const firstErrorId = Object.keys(errors)[0]
       if (firstErrorId) {
-        setClientTabs({ ...clientTabs, [firstErrorId]: "plan" })
+        setExpandedClients({
+          ...expandedClients,
+          [firstErrorId]: true,
+        })
 
         // Scroll to the client with error
         const clientElement = document.getElementById(`client-${firstErrorId}`)
@@ -177,14 +310,31 @@ export default function ReportsPage() {
     return !hasErrors
   }
 
+  // Save report data to localStorage
+  const saveReportData = () => {
+    const dataToSave = {
+      agentName,
+      addedToday,
+      monthlyAdded,
+      openShops,
+      deposits: agentDeposits,
+      clients: reportClients,
+      lastModified: new Date().toISOString(),
+    }
+
+    localStorage.setItem("agentReportData", JSON.stringify(dataToSave))
+    setLastSaved(new Date().toLocaleTimeString())
+  }
+
   // Generate the report
   const generateReport = () => {
-    // Validate plan information first
-    if (!validateClientPlans()) {
+    // Validate required information first
+    if (!validateClientInfo()) {
       return
     }
 
     setIsGenerating(true)
+    saveReportData()
 
     // Simulate processing delay
     setTimeout(() => {
@@ -213,7 +363,12 @@ export default function ReportsPage() {
       setGeneratedReport(report)
       setIsGenerating(false)
 
-      // Scroll to the report section
+      // Expand the report section and scroll to it
+      setExpandedSections({
+        ...expandedSections,
+        report: true,
+      })
+
       if (reportContainerRef.current) {
         reportContainerRef.current.scrollIntoView({ behavior: "smooth" })
       }
@@ -361,13 +516,6 @@ export default function ReportsPage() {
 
         setReportClients(importedClients)
 
-        // Initialize tabs for imported clients
-        const newClientTabs: { [key: string]: string } = {}
-        importedClients.forEach((client) => {
-          newClientTabs[client.id] = "basic"
-        })
-        setClientTabs(newClientTabs)
-
         toast({
           title: "Report Imported",
           description: `Successfully imported report from ${file.name}`,
@@ -413,36 +561,19 @@ export default function ReportsPage() {
         const loadedClients = data.clients || [emptyClient()]
         setReportClients(loadedClients)
 
-        // Initialize tabs for loaded clients
-        const newClientTabs: { [key: string]: string } = {}
-        loadedClients.forEach((client) => {
-          newClientTabs[client.id] = "basic"
-        })
-        setClientTabs(newClientTabs)
+        if (data.lastModified) {
+          const date = new Date(data.lastModified)
+          setLastSaved(date.toLocaleTimeString())
+        }
       } catch (e) {
         console.error("Error loading saved data:", e)
       }
     } else {
-      // Initialize tabs for default client
+      // Initialize with default client
       const defaultClient = emptyClient()
       setReportClients([defaultClient])
-      setClientTabs({ [defaultClient.id]: "basic" })
     }
   }, [])
-
-  // Save data to localStorage when it changes
-  useEffect(() => {
-    const dataToSave = {
-      agentName,
-      addedToday,
-      monthlyAdded,
-      openShops,
-      deposits: agentDeposits,
-      clients: reportClients,
-    }
-
-    localStorage.setItem("agentReportData", JSON.stringify(dataToSave))
-  }, [agentName, addedToday, monthlyAdded, openShops, agentDeposits, reportClients])
 
   // Auto-populate fields when agent is selected
   useEffect(() => {
@@ -453,378 +584,494 @@ export default function ReportsPage() {
         setMonthlyAdded(selectedAgent.monthlyAdded || 0)
         setOpenShops(selectedAgent.openAccounts || 0)
         setAgentDeposits(selectedAgent.totalDeposits || 0)
+        saveReportData()
       }
     }
   }, [agentName, agents])
 
   return (
-    <div className="container mx-auto p-4 md:p-6 space-y-8 animate-fade-in">
-      <div className="mb-8">
+    <div className="container mx-auto p-4 md:p-6 space-y-6 animate-fade-in">
+      <div className="mb-6">
         <h1 className="text-3xl font-bold tracking-tight">Agent Reports</h1>
         <p className="text-muted-foreground mt-2">Create detailed agent and client reports</p>
       </div>
 
+      {/* Progress bar */}
+      <div className="space-y-2">
+        <div className="flex justify-between items-center">
+          <div className="text-sm font-medium">Report completion: {completionPercentage}%</div>
+          {lastSaved && (
+            <div className="text-xs text-muted-foreground flex items-center gap-1">
+              <Save className="h-3 w-3" /> Last saved: {lastSaved}
+            </div>
+          )}
+        </div>
+        <Progress value={completionPercentage} className="h-2" />
+      </div>
+
       {/* Agent Information Section */}
       <Card className="shadow-sm hover:shadow-md transition-shadow duration-300">
-        <CardHeader className="bg-muted/30">
-          <CardTitle>Agent Information</CardTitle>
-          <CardDescription>Enter your agent details for the report</CardDescription>
-        </CardHeader>
-        <CardContent className="pt-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <label htmlFor="agentName" className="text-sm font-medium">
-                Agent Name
-              </label>
-              <Select value={agentName} onValueChange={setAgentName}>
-                <SelectTrigger id="agentName" className="w-full">
-                  <SelectValue placeholder="Select an agent" />
-                </SelectTrigger>
-                <SelectContent>
-                  {agents && agents.length > 0 ? (
-                    agents.map((agent) => (
-                      <SelectItem key={agent.id} value={agent.name}>
-                        {agent.name}
-                      </SelectItem>
-                    ))
-                  ) : (
-                    <SelectItem value="" disabled>
-                      No agents available
-                    </SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <label htmlFor="addedToday" className="text-sm font-medium">
-                Added Today
-              </label>
-              <Input
-                id="addedToday"
-                placeholder="Number of clients added today"
-                value={addedToday}
-                onChange={(e) => setAddedToday(Number(e.target.value))}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label htmlFor="monthlyAdded" className="text-sm font-medium">
-                Monthly Added
-              </label>
-              <Input
-                id="monthlyAdded"
-                placeholder="Number of clients added this month"
-                value={monthlyAdded}
-                onChange={(e) => setMonthlyAdded(Number(e.target.value))}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label htmlFor="openShops" className="text-sm font-medium">
-                Open Shops
-              </label>
-              <Input
-                id="openShops"
-                placeholder="Number of open shops"
-                value={openShops}
-                onChange={(e) => setOpenShops(Number(e.target.value))}
-              />
-            </div>
-
-            <div className="space-y-2 md:col-span-2">
-              <label htmlFor="deposits" className="text-sm font-medium">
-                Deposits
-              </label>
-              <Input
-                id="deposits"
-                placeholder="Total deposits amount"
-                value={agentDeposits}
-                onChange={(e) => setAgentDeposits(Number(e.target.value))}
-              />
-            </div>
+        <CardHeader
+          className="bg-muted/30 cursor-pointer flex flex-row items-center justify-between"
+          onClick={() => toggleSection("agentInfo")}
+        >
+          <div>
+            <CardTitle>Agent Information</CardTitle>
+            <CardDescription>Enter your agent details for the report</CardDescription>
           </div>
-        </CardContent>
+          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+            {expandedSections.agentInfo ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          </Button>
+        </CardHeader>
+
+        {expandedSections.agentInfo && (
+          <CardContent className="pt-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label htmlFor="agentName" className="text-sm font-medium">
+                  Agent Name <span className="text-red-500">*</span>
+                </label>
+                <Select value={agentName} onValueChange={setAgentName}>
+                  <SelectTrigger id="agentName" className="w-full">
+                    <SelectValue placeholder="Select an agent" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {agents && agents.length > 0 ? (
+                      agents.map((agent) => (
+                        <SelectItem key={agent.id} value={agent.name}>
+                          {agent.name}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="" disabled>
+                        No agents available
+                      </SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="addedToday" className="text-sm font-medium">
+                  Added Today <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  id="addedToday"
+                  placeholder="Number of clients added today"
+                  value={addedToday}
+                  onChange={(e) => {
+                    setAddedToday(Number(e.target.value))
+                    saveReportData()
+                  }}
+                  type="number"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="monthlyAdded" className="text-sm font-medium">
+                  Monthly Added <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  id="monthlyAdded"
+                  placeholder="Number of clients added this month"
+                  value={monthlyAdded}
+                  onChange={(e) => {
+                    setMonthlyAdded(Number(e.target.value))
+                    saveReportData()
+                  }}
+                  type="number"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="openShops" className="text-sm font-medium">
+                  Open Shops <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  id="openShops"
+                  placeholder="Number of open shops"
+                  value={openShops}
+                  onChange={(e) => {
+                    setOpenShops(Number(e.target.value))
+                    saveReportData()
+                  }}
+                  type="number"
+                />
+              </div>
+
+              <div className="space-y-2 md:col-span-2">
+                <label htmlFor="deposits" className="text-sm font-medium">
+                  Deposits <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  id="deposits"
+                  placeholder="Total deposits amount"
+                  value={agentDeposits}
+                  onChange={(e) => {
+                    setAgentDeposits(Number(e.target.value))
+                    saveReportData()
+                  }}
+                  type="number"
+                />
+              </div>
+            </div>
+          </CardContent>
+        )}
       </Card>
 
       {/* Client Management Section */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold">Client Information</h2>
-          <Button onClick={addClient} size="sm" className="flex items-center gap-1">
-            <Plus className="h-4 w-4" />
-            Add Client
-          </Button>
-        </div>
+      <Card className="shadow-sm hover:shadow-md transition-shadow duration-300">
+        <CardHeader
+          className="bg-muted/30 cursor-pointer flex flex-row items-center justify-between"
+          onClick={() => toggleSection("clients")}
+        >
+          <div>
+            <CardTitle>Client Information</CardTitle>
+            <CardDescription>Enter details for each client</CardDescription>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={(e) => {
+                e.stopPropagation()
+                addClient()
+              }}
+              size="sm"
+              className="flex items-center gap-1"
+            >
+              <Plus className="h-4 w-4" />
+              Add Client
+            </Button>
+            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+              {expandedSections.clients ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </Button>
+          </div>
+        </CardHeader>
 
-        <Alert className="bg-amber-50 border-amber-200">
-          <AlertCircle className="h-4 w-4 text-amber-600" />
-          <AlertTitle className="text-amber-800">Important</AlertTitle>
-          <AlertDescription className="text-amber-700">
-            Both the <strong>Basic Information</strong> and <strong>Plan</strong> tabs must be filled out for each
-            client. The Plan tab is required for report generation.
-          </AlertDescription>
-        </Alert>
+        {expandedSections.clients && (
+          <CardContent className="pt-4">
+            <Alert className="bg-amber-50 border-amber-200 mb-4">
+              <AlertCircle className="h-4 w-4 text-amber-600" />
+              <AlertTitle className="text-amber-800">Required Fields</AlertTitle>
+              <AlertDescription className="text-amber-700">
+                Fields marked with <span className="text-red-500">*</span> are required for report generation.
+              </AlertDescription>
+            </Alert>
 
-        {reportClients.map((client, index) => (
-          <Card
-            key={client.id}
-            id={`client-${client.id}`}
-            className={`shadow-sm hover:shadow-md transition-shadow duration-300 ${validationErrors[client.id] ? "border-red-300 bg-red-50" : ""}`}
-          >
-            <CardHeader className="bg-muted/30 pb-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <CardTitle className="text-lg">Client {index + 1}</CardTitle>
-                  {clientHasPlanInfo(client) ? (
-                    <Badge
-                      variant="outline"
-                      className="bg-green-50 text-green-700 border-green-200 flex items-center gap-1"
+            <div className="space-y-4">
+              {reportClients.map((client, index) => {
+                const status = getClientCompletionStatus(client)
+
+                return (
+                  <Card
+                    key={client.id}
+                    id={`client-${client.id}`}
+                    className={`shadow-sm transition-shadow duration-300 ${validationErrors[client.id] ? "border-red-300" : ""}`}
+                  >
+                    <CardHeader
+                      className={`py-3 cursor-pointer flex flex-row items-center justify-between ${validationErrors[client.id] ? "bg-red-50" : "bg-muted/30"}`}
+                      onClick={() => toggleClient(client.id)}
                     >
-                      <CheckCircle2 className="h-3 w-3" /> Plan Complete
-                    </Badge>
-                  ) : (
-                    <Badge
-                      variant="outline"
-                      className="bg-amber-50 text-amber-700 border-amber-200 flex items-center gap-1"
-                    >
-                      <AlertCircle className="h-3 w-3" /> Plan Required
-                    </Badge>
-                  )}
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => removeClient(client.id)}
-                  className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
-                >
-                  <Trash2 className="h-4 w-4" />
-                  <span className="sr-only">Remove client</span>
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-4">
-              <Tabs
-                defaultValue="basic"
-                value={clientTabs[client.id] || "basic"}
-                onValueChange={(value) => setActiveTab(client.id, value)}
-                className="w-full"
+                      <div className="flex items-center gap-3">
+                        <CardTitle className="text-base">Client {index + 1}</CardTitle>
+                        <Progress
+                          value={status.percentage}
+                          className="h-2 w-20"
+                          indicatorClassName={status.percentage === 100 ? "bg-green-500" : ""}
+                        />
+                        <span className="text-xs text-muted-foreground">
+                          {status.completed}/{status.total} completed
+                        </span>
+
+                        {validationErrors[client.id] && (
+                          <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+                            Missing required fields
+                          </Badge>
+                        )}
+
+                        {clientHasRequiredInfo(client) && (
+                          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                            <CheckCircle2 className="h-3 w-3 mr-1" /> Complete
+                          </Badge>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            removeClient(client.id)
+                          }}
+                          className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          <span className="sr-only">Remove client</span>
+                        </Button>
+
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                          {expandedClients[client.id] ? (
+                            <ChevronUp className="h-4 w-4" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
+                    </CardHeader>
+
+                    {expandedClients[client.id] && (
+                      <CardContent className="pt-4 space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {/* Basic Information Fields */}
+                          <div className="space-y-2">
+                            <label htmlFor={`shopId-${client.id}`} className="text-sm font-medium">
+                              Shop ID
+                            </label>
+                            <Input
+                              id={`shopId-${client.id}`}
+                              placeholder="Enter shop ID"
+                              value={client.shopId}
+                              onChange={(e) => updateClient(client.id, "shopId", e.target.value)}
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <label htmlFor={`assets-${client.id}`} className="text-sm font-medium">
+                              Assets
+                            </label>
+                            <Input
+                              id={`assets-${client.id}`}
+                              placeholder="Enter client assets"
+                              value={client.assets}
+                              onChange={(e) => updateClient(client.id, "assets", e.target.value)}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <label htmlFor={`clientDetails-${client.id}`} className="text-sm font-medium">
+                            Client Details
+                          </label>
+                          <Textarea
+                            id={`clientDetails-${client.id}`}
+                            placeholder="Client Name/ Age/ Job/Location"
+                            value={client.clientDetails}
+                            onChange={(e) => updateClient(client.id, "clientDetails", e.target.value)}
+                            rows={2}
+                          />
+                        </div>
+
+                        {/* Required Fields with Templates */}
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <label
+                              htmlFor={`conversationSummary-${client.id}`}
+                              className="text-sm font-medium flex items-center"
+                            >
+                              Conversation Summary <span className="text-red-500 ml-1">*</span>
+                            </label>
+
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div className="relative">
+                                    <Select
+                                      onValueChange={(value) => applyTemplate(client.id, "conversationSummary", value)}
+                                    >
+                                      <SelectTrigger className="h-7 text-xs w-auto min-w-[120px] bg-muted/50">
+                                        <Sparkles className="h-3 w-3 mr-1" />
+                                        <span>Quick Templates</span>
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {TEMPLATES.conversationSummary.map((template, i) => (
+                                          <SelectItem key={i} value={template}>
+                                            {template.length > 40 ? template.substring(0, 40) + "..." : template}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p className="text-xs">Apply a template to quickly fill this field</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
+
+                          <Textarea
+                            id={`conversationSummary-${client.id}`}
+                            placeholder="Summarize your conversation"
+                            value={client.conversationSummary}
+                            onChange={(e) => updateClient(client.id, "conversationSummary", e.target.value)}
+                            rows={3}
+                            className={
+                              validationErrors[client.id] && validationErrors[client.id].includes("conversationSummary")
+                                ? "border-red-300"
+                                : ""
+                            }
+                          />
+
+                          {validationErrors[client.id] &&
+                            validationErrors[client.id].includes("conversationSummary") && (
+                              <p className="text-xs text-red-500 mt-1">This field is required</p>
+                            )}
+                        </div>
+
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <label
+                              htmlFor={`planForTomorrow-${client.id}`}
+                              className="text-sm font-medium flex items-center"
+                            >
+                              Plan for Tomorrow <span className="text-red-500 ml-1">*</span>
+                            </label>
+
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div className="relative">
+                                    <Select
+                                      onValueChange={(value) => applyTemplate(client.id, "planForTomorrow", value)}
+                                    >
+                                      <SelectTrigger className="h-7 text-xs w-auto min-w-[120px] bg-muted/50">
+                                        <Sparkles className="h-3 w-3 mr-1" />
+                                        <span>Quick Templates</span>
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {TEMPLATES.planForTomorrow.map((template, i) => (
+                                          <SelectItem key={i} value={template}>
+                                            {template.length > 40 ? template.substring(0, 40) + "..." : template}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p className="text-xs">Apply a template to quickly fill this field</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
+
+                          <Textarea
+                            id={`planForTomorrow-${client.id}`}
+                            placeholder="What's the plan for tomorrow?"
+                            value={client.planForTomorrow}
+                            onChange={(e) => updateClient(client.id, "planForTomorrow", e.target.value)}
+                            rows={3}
+                            className={
+                              validationErrors[client.id] && validationErrors[client.id].includes("planForTomorrow")
+                                ? "border-red-300"
+                                : ""
+                            }
+                          />
+
+                          {validationErrors[client.id] && validationErrors[client.id].includes("planForTomorrow") && (
+                            <p className="text-xs text-red-500 mt-1">This field is required</p>
+                          )}
+                        </div>
+                      </CardContent>
+                    )}
+                  </Card>
+                )
+              })}
+
+              <Button
+                onClick={addClient}
+                variant="outline"
+                className="w-full flex items-center justify-center gap-2 py-6 border-dashed"
               >
-                <TabsList className="grid w-full grid-cols-2 mb-4">
-                  <TabsTrigger
-                    value="basic"
-                    className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-                  >
-                    Basic Information
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="plan"
-                    className={`data-[state=active]:bg-primary data-[state=active]:text-primary-foreground ${validationErrors[client.id] ? "bg-red-100 text-red-700 border-red-300" : ""}`}
-                  >
-                    Plan <span className="text-red-500 ml-1">*</span>
-                  </TabsTrigger>
-                </TabsList>
-
-                {validationErrors[client.id] && (
-                  <div className="mb-4">
-                    <Alert variant="destructive" className="mb-4">
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertTitle>Required fields</AlertTitle>
-                      <AlertDescription>
-                        Please fill out both the Conversation Summary and Plan for Tomorrow fields.
-                      </AlertDescription>
-                    </Alert>
-                  </div>
-                )}
-
-                <TabsContent value="basic" className="pt-2 space-y-4">
-                  <div className="space-y-2">
-                    <label htmlFor={`shopId-${client.id}`} className="text-sm font-medium">
-                      Shop ID
-                    </label>
-                    <Input
-                      id={`shopId-${client.id}`}
-                      placeholder="Enter shop ID"
-                      value={client.shopId}
-                      onChange={(e) => updateClient(client.id, "shopId", e.target.value)}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label htmlFor={`clientDetails-${client.id}`} className="text-sm font-medium">
-                      Client Details
-                    </label>
-                    <Textarea
-                      id={`clientDetails-${client.id}`}
-                      placeholder="Client Name/ Age/ Job/Location"
-                      value={client.clientDetails}
-                      onChange={(e) => updateClient(client.id, "clientDetails", e.target.value)}
-                      rows={3}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label htmlFor={`assets-${client.id}`} className="text-sm font-medium">
-                      Assets
-                    </label>
-                    <Textarea
-                      id={`assets-${client.id}`}
-                      placeholder="Enter client assets"
-                      value={client.assets}
-                      onChange={(e) => updateClient(client.id, "assets", e.target.value)}
-                      rows={3}
-                    />
-                  </div>
-
-                  <div className="flex justify-end mt-4">
-                    <Button onClick={() => setActiveTab(client.id, "plan")} className="flex items-center gap-2">
-                      Next: Plan <span className="text-xs">(Required)</span>
-                    </Button>
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="plan" className="pt-2 space-y-4">
-                  <div className="space-y-2">
-                    <label
-                      htmlFor={`conversationSummary-${client.id}`}
-                      className="text-sm font-medium flex items-center"
-                    >
-                      Conversation Summary <span className="text-red-500 ml-1">*</span>
-                    </label>
-                    <Textarea
-                      id={`conversationSummary-${client.id}`}
-                      placeholder="Summarize your conversation"
-                      value={client.conversationSummary}
-                      onChange={(e) => updateClient(client.id, "conversationSummary", e.target.value)}
-                      rows={4}
-                      className={validationErrors[client.id] ? "border-red-300" : ""}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label htmlFor={`planForTomorrow-${client.id}`} className="text-sm font-medium flex items-center">
-                      Plan for Tomorrow <span className="text-red-500 ml-1">*</span>
-                    </label>
-                    <Textarea
-                      id={`planForTomorrow-${client.id}`}
-                      placeholder="What's the plan for tomorrow?"
-                      value={client.planForTomorrow}
-                      onChange={(e) => updateClient(client.id, "planForTomorrow", e.target.value)}
-                      rows={4}
-                      className={validationErrors[client.id] ? "border-red-300" : ""}
-                    />
-                  </div>
-
-                  <div className="flex justify-between mt-4">
-                    <Button variant="outline" onClick={() => setActiveTab(client.id, "basic")}>
-                      Back to Basic Info
-                    </Button>
-
-                    {!clientHasPlanInfo(client) && (
-                      <Button
-                        variant="destructive"
-                        className="flex items-center gap-2"
-                        onClick={() => {
-                          setValidationErrors({ ...validationErrors, [client.id]: true })
-                          toast({
-                            title: "Required fields",
-                            description: "Please fill out both the Conversation Summary and Plan for Tomorrow fields.",
-                            variant: "destructive",
-                          })
-                        }}
-                      >
-                        <AlertCircle className="h-4 w-4" />
-                        Required Fields
-                      </Button>
-                    )}
-
-                    {clientHasPlanInfo(client) && (
-                      <Button
-                        variant="outline"
-                        className="flex items-center gap-2 bg-green-50 text-green-700 border-green-200"
-                      >
-                        <CheckCircle2 className="h-4 w-4" />
-                        Plan Complete
-                      </Button>
-                    )}
-                  </div>
-                </TabsContent>
-              </Tabs>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+                <Plus className="h-4 w-4" />
+                Add Another Client
+              </Button>
+            </div>
+          </CardContent>
+        )}
+      </Card>
 
       {/* Report Generation Section */}
       <Card className="shadow-sm" ref={reportContainerRef}>
-        <CardHeader className="bg-muted/30">
-          <CardTitle>Generated Report</CardTitle>
-          <CardDescription>Generate and manage your report</CardDescription>
+        <CardHeader
+          className="bg-muted/30 cursor-pointer flex flex-row items-center justify-between"
+          onClick={() => toggleSection("report")}
+        >
+          <div>
+            <CardTitle>Generated Report</CardTitle>
+            <CardDescription>Generate and manage your report</CardDescription>
+          </div>
+          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+            {expandedSections.report ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          </Button>
         </CardHeader>
-        <CardContent className="pt-6">
-          <div className="flex flex-wrap gap-3 mb-6">
-            <Button onClick={generateReport} disabled={isGenerating} className="flex items-center gap-2">
-              {isGenerating ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Generating...
-                </>
-              ) : (
-                <>
-                  <FileText className="h-4 w-4" />
-                  Generate Report
-                </>
-              )}
-            </Button>
 
-            <Button
-              variant="outline"
-              onClick={clearReport}
-              disabled={!generatedReport || isGenerating}
-              className="flex items-center gap-2"
-            >
-              <RefreshCw className="h-4 w-4" />
-              Clear
-            </Button>
+        {expandedSections.report && (
+          <CardContent className="pt-6">
+            <div className="flex flex-wrap gap-3 mb-6">
+              <Button onClick={generateReport} disabled={isGenerating} className="flex items-center gap-2">
+                {isGenerating ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <FileText className="h-4 w-4" />
+                    Generate Report
+                  </>
+                )}
+              </Button>
 
-            <Button
-              variant="outline"
-              onClick={translateReport}
-              disabled={!generatedReport || isGenerating}
-              className="flex items-center gap-2"
-            >
-              <Languages className="h-4 w-4" />
-              Translate
-            </Button>
+              <Button
+                variant="outline"
+                onClick={clearReport}
+                disabled={!generatedReport || isGenerating}
+                className="flex items-center gap-2"
+              >
+                <RefreshCw className="h-4 w-4" />
+                Clear
+              </Button>
 
-            <Button
-              variant="outline"
-              onClick={copyToClipboard}
-              disabled={!generatedReport || isGenerating}
-              className="flex items-center gap-2"
-            >
-              <Copy className="h-4 w-4" />
-              Copy
-            </Button>
+              <Button
+                variant="outline"
+                onClick={translateReport}
+                disabled={!generatedReport || isGenerating}
+                className="flex items-center gap-2"
+              >
+                <Languages className="h-4 w-4" />
+                Translate
+              </Button>
 
-            <Button variant="outline" onClick={exportAsJson} className="flex items-center gap-2">
-              <Download className="h-4 w-4" />
-              Export JSON
-            </Button>
+              <Button
+                variant="outline"
+                onClick={copyToClipboard}
+                disabled={!generatedReport || isGenerating}
+                className="flex items-center gap-2"
+              >
+                <Copy className="h-4 w-4" />
+                Copy
+              </Button>
 
-            <Button variant="outline" onClick={triggerFileInput} className="flex items-center gap-2">
-              <Upload className="h-4 w-4" />
-              Import JSON
-            </Button>
+              <Button variant="outline" onClick={exportAsJson} className="flex items-center gap-2">
+                <Download className="h-4 w-4" />
+                Export JSON
+              </Button>
 
-            {/* Hidden file input for JSON import */}
-            <input type="file" ref={fileInputRef} onChange={importFromJson} accept=".json" className="hidden" />
-          </div>
+              <Button variant="outline" onClick={triggerFileInput} className="flex items-center gap-2">
+                <Upload className="h-4 w-4" />
+                Import JSON
+              </Button>
 
-          <div className="border rounded-md p-4 min-h-[200px] bg-muted/20 font-mono text-sm whitespace-pre-wrap">
-            {generatedReport || "Your generated report will appear here..."}
-          </div>
-        </CardContent>
+              {/* Hidden file input for JSON import */}
+              <input type="file" ref={fileInputRef} onChange={importFromJson} accept=".json" className="hidden" />
+            </div>
+
+            <div className="border rounded-md p-4 min-h-[200px] bg-muted/20 font-mono text-sm whitespace-pre-wrap">
+              {generatedReport || "Your generated report will appear here..."}
+            </div>
+          </CardContent>
+        )}
       </Card>
     </div>
   )

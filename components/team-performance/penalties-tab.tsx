@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useTeamContext } from "@/context/team-context"
-import { useAuth } from "@/context/auth-context" // Add this import
+import { useAuth } from "@/context/auth-context"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -11,15 +11,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { format } from "date-fns"
-import { Trash2, CalendarIcon, FileDown, PlusCircle } from "lucide-react"
+import { Trash2, CalendarIcon, FileDown, PlusCircle, Pencil, X, Check } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
+import type { Penalty } from "@/types/team"
 
 export default function PenaltiesTab() {
-  const { agents, penalties, addPenalty, deletePenalty } = useTeamContext()
-  const { isViewer } = useAuth() // Get viewer status
+  const { agents, penalties, addPenalty, deletePenalty, updatePenalty } = useTeamContext()
+  const { isViewer, isAdmin } = useAuth() // Get viewer and admin status
   const { toast } = useToast()
 
   const [selectedAgentId, setSelectedAgentId] = useState("")
@@ -29,6 +30,18 @@ export default function PenaltiesTab() {
 
   // Add a state variable to control form visibility
   const [showForm, setShowForm] = useState(false)
+
+  // Add state for editing
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editData, setEditData] = useState<{
+    description: string
+    amount: number
+    date: Date | undefined
+  }>({
+    description: "",
+    amount: 0,
+    date: undefined,
+  })
 
   // Modify the handleAddPenalty function to prevent duplicates
   const handleAddPenalty = async () => {
@@ -131,6 +144,72 @@ export default function PenaltiesTab() {
       title: "Export Successful",
       description: "Penalties data has been exported to CSV",
     })
+  }
+
+  // Start editing a penalty
+  const handleStartEdit = (penalty: Penalty) => {
+    setEditingId(penalty.id)
+    setEditData({
+      description: penalty.description,
+      amount: penalty.amount,
+      date: penalty.date ? new Date(penalty.date) : undefined,
+    })
+  }
+
+  // Cancel editing
+  const handleCancelEdit = () => {
+    setEditingId(null)
+    setEditData({
+      description: "",
+      amount: 0,
+      date: undefined,
+    })
+  }
+
+  // Save edited penalty
+  const handleSaveEdit = async (penalty: Penalty) => {
+    if (!editData.description.trim()) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Description cannot be empty",
+      })
+      return
+    }
+
+    if (editData.amount <= 0) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Amount must be greater than 0",
+      })
+      return
+    }
+
+    try {
+      const formattedDate = editData.date ? format(editData.date, "yyyy-MM-dd") : penalty.date
+
+      const updatedPenalty: Penalty = {
+        ...penalty,
+        description: editData.description,
+        amount: editData.amount,
+        date: formattedDate,
+      }
+
+      await updatePenalty(updatedPenalty)
+      setEditingId(null)
+
+      toast({
+        title: "Penalty Updated",
+        description: `Penalty for ${penalty.agentName} has been updated`,
+      })
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: (error as Error).message || "Failed to update penalty",
+      })
+    }
   }
 
   // Replace the form card with this updated version that includes a toggle button
@@ -248,21 +327,106 @@ export default function PenaltiesTab() {
                 {penalties.length > 0 ? (
                   penalties.map((penalty) => (
                     <TableRow key={penalty.id} className="hover:bg-muted/30 transition-colors">
-                      <TableCell>{penalty.date}</TableCell>
+                      <TableCell>
+                        {editingId === penalty.id ? (
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant={"outline"}
+                                className={cn(
+                                  "w-full justify-start text-left font-normal",
+                                  !editData.date && "text-muted-foreground",
+                                )}
+                              >
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {editData.date ? format(editData.date, "PPP") : <span>Pick a date</span>}
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0">
+                              <Calendar
+                                mode="single"
+                                selected={editData.date}
+                                onSelect={(date) => setEditData({ ...editData, date })}
+                                initialFocus
+                              />
+                            </PopoverContent>
+                          </Popover>
+                        ) : (
+                          penalty.date
+                        )}
+                      </TableCell>
                       <TableCell className="font-medium">{penalty.agentName}</TableCell>
-                      <TableCell>{penalty.description}</TableCell>
-                      <TableCell className="font-medium">${penalty.amount.toLocaleString()}</TableCell>
+                      <TableCell>
+                        {editingId === penalty.id ? (
+                          <Textarea
+                            value={editData.description}
+                            onChange={(e) => setEditData({ ...editData, description: e.target.value })}
+                            className="min-h-[60px]"
+                          />
+                        ) : (
+                          penalty.description
+                        )}
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        {editingId === penalty.id ? (
+                          <Input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={editData.amount}
+                            onChange={(e) => setEditData({ ...editData, amount: Number(e.target.value) })}
+                          />
+                        ) : (
+                          `$${penalty.amount.toLocaleString()}`
+                        )}
+                      </TableCell>
                       {!isViewer && (
                         <TableCell className="text-right">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDeletePenalty(penalty.id, penalty.agentName)}
-                            className="hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/20"
-                          >
-                            <Trash2 className="h-4 w-4 text-red-500" />
-                            <span className="sr-only">Delete</span>
-                          </Button>
+                          {editingId === penalty.id ? (
+                            <div className="flex justify-end gap-2">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleSaveEdit(penalty)}
+                                className="hover:bg-green-100 hover:text-green-600 dark:hover:bg-green-900/20"
+                              >
+                                <Check className="h-4 w-4 text-green-500" />
+                                <span className="sr-only">Save</span>
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={handleCancelEdit}
+                                className="hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/20"
+                              >
+                                <X className="h-4 w-4 text-red-500" />
+                                <span className="sr-only">Cancel</span>
+                              </Button>
+                            </div>
+                          ) : (
+                            <div className="flex justify-end gap-2">
+                              {isAdmin && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleStartEdit(penalty)}
+                                  className="hover:bg-blue-100 hover:text-blue-600 dark:hover:bg-blue-900/20"
+                                >
+                                  <Pencil className="h-4 w-4 text-blue-500" />
+                                  <span className="sr-only">Edit</span>
+                                </Button>
+                              )}
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleDeletePenalty(penalty.id, penalty.agentName)}
+                                className="hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/20"
+                              >
+                                <Trash2 className="h-4 w-4 text-red-500" />
+                                <span className="sr-only">Delete</span>
+                              </Button>
+                            </div>
+                          )}
                         </TableCell>
                       )}
                     </TableRow>

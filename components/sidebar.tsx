@@ -72,7 +72,13 @@ const NavItem = React.memo(({ icon: Icon, label, active, onClick, badge, collaps
 })
 
 export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
-  const [collapsed, setCollapsed] = useState(false)
+  const [collapsed, setCollapsed] = useState(() => {
+    if (typeof window !== "undefined") {
+      const savedState = localStorage.getItem("sidebarCollapsed")
+      return savedState === "true"
+    }
+    return false
+  })
   const [isMobile, setIsMobile] = useState(isMobileInit())
   const [isSheetOpen, setIsSheetOpen] = useState(false)
   const [expandedGroups, setExpandedGroups] = useState({
@@ -82,6 +88,7 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
     analytics: true,
     system: true,
   })
+  const [hoveredItem, setHoveredItem] = useState<string | null>(null)
   const router = useRouter()
   const { user, logout, isAdmin, isViewer } = useAuth()
   const { orderRequests } = useClientContext()
@@ -103,6 +110,12 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
       setIsMobile(mobile)
       if (mobile) {
         setCollapsed(true)
+      } else {
+        // On desktop, restore the saved collapsed state
+        const savedState = localStorage.getItem("sidebarCollapsed")
+        if (savedState !== null) {
+          setCollapsed(savedState === "true")
+        }
       }
     }
 
@@ -170,7 +183,9 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
   // Create order request badge
   const orderRequestBadge =
     pendingOrderRequests > 0 ? (
-      <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full ml-auto">{pendingOrderRequests}</span>
+      <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full ml-auto animate-pulse">
+        {pendingOrderRequests}
+      </span>
     ) : null
 
   // Toggle group expansion
@@ -199,101 +214,85 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
     {
       title: "Dashboard",
       id: "dashboard",
-      icon: <Home className="h-4 w-4" />,
+      icon: <Home className="h-5 w-5" />,
       items: [
         {
           id: "dashboard",
           label: "Dashboard",
-          icon: <Home className="h-5 w-5" />,
+          icon: <Home className="h-6 w-6" />,
         },
       ],
     },
     {
       title: "Client Data",
       id: "clientData",
-      icon: <Database className="h-4 w-4" />,
+      icon: <Database className="h-5 w-5" />,
       items: [
         {
           id: "clients",
           label: "Clients",
-          icon: <Users className="h-5 w-5" />,
+          icon: <Users className="h-6 w-6" />,
         },
       ],
     },
     {
       title: "Transactions",
       id: "transactions",
-      icon: <ReceiptText className="h-4 w-4" />,
+      icon: <ReceiptText className="h-5 w-5" />,
       items: [
         {
           id: "orders",
           label: "Orders",
-          icon: <ShoppingBag className="h-5 w-5" />,
+          icon: <ShoppingBag className="h-6 w-6" />,
         },
         {
           id: "order-requests",
           label: "Order Requests",
-          icon: <FileText className="h-5 w-5" />,
+          icon: <FileText className="h-6 w-6" />,
           badge: orderRequestBadge,
         },
         {
           id: "deposits",
           label: "Deposits",
-          icon: <Wallet className="h-5 w-5" />,
+          icon: <Wallet className="h-6 w-6" />,
         },
         {
           id: "withdrawals",
           label: "Withdrawals",
-          icon: <ArrowDownCircle className="h-5 w-5" />,
+          icon: <ArrowDownCircle className="h-6 w-6" />,
         },
       ],
     },
     {
       title: "Analytics",
       id: "analytics",
-      icon: <LineChart className="h-4 w-4" />,
+      icon: <LineChart className="h-5 w-5" />,
       items: [
         {
           id: "team",
           label: "Team Performance",
-          icon: <BarChart3 className="h-5 w-5" />,
+          icon: <BarChart3 className="h-6 w-6" />,
         },
         {
           id: "reports",
           label: "Reports",
-          icon: <FileText className="h-5 w-5" />,
+          icon: <FileText className="h-6 w-6" />,
         },
       ],
     },
     {
       title: "System",
       id: "system",
-      icon: <Cog className="h-4 w-4" />,
+      icon: <Cog className="h-5 w-5" />,
       items: [
         {
           id: "settings",
           label: "Settings",
-          icon: <Settings className="h-5 w-5" />,
+          icon: <Settings className="h-6 w-6" />,
         },
       ],
     },
   ]
-
-  // Remove conditional that was hiding the System section from viewers
-  // if (!isViewer) {
-  //   navStructure.push({
-  //     title: "System",
-  //     id: "system",
-  //     icon: <Cog className="h-4 w-4" />,
-  //     items: [
-  //       {
-  //         id: "settings",
-  //         label: "Settings",
-  //         icon: <Settings className="h-5 w-5" />,
-  //       },
-  //     ],
-  //   })
-  // }
 
   const navigationSections = useMemo(
     () => [
@@ -397,8 +396,13 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
 
           <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" aria-label="Open menu" className="ml-auto">
-                <Menu className="h-5 w-5" />
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="Open menu"
+                className="ml-auto hover:bg-primary/10 transition-all duration-300"
+              >
+                <Menu className="h-6 w-6" />
               </Button>
             </SheetTrigger>
             <SheetContent side="left" className="w-[280px] p-0 sm:max-w-sm">
@@ -407,8 +411,13 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
                 <div className="flex items-center justify-between p-4 border-b">
                   <div className="font-bold text-primary text-xl">CMS</div>
                   <SheetClose asChild>
-                    <Button variant="ghost" size="icon" aria-label="Close menu">
-                      <X className="h-5 w-5" />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label="Close menu"
+                      className="hover:bg-primary/10 transition-all duration-300"
+                    >
+                      <X className="h-6 w-6" />
                     </Button>
                   </SheetClose>
                 </div>
@@ -416,7 +425,7 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
                 {/* User info */}
                 <div className="flex items-center p-4 border-b bg-muted/30">
                   <div className="relative">
-                    <Avatar className="h-10 w-10 border-2 border-primary/20">{getAvatarContent()}</Avatar>
+                    <Avatar className="h-12 w-12 border-2 border-primary/20">{getAvatarContent()}</Avatar>
                     <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-green-500 border-2 border-white"></span>
                   </div>
                   <div className="ml-3">
@@ -430,35 +439,44 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
                   {navStructure.map((group) => (
                     <div key={group.id} className="mb-2">
                       <div
-                        className="flex items-center px-4 py-2 text-sm font-medium text-muted-foreground"
+                        className="flex items-center px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors duration-200 cursor-pointer"
                         onClick={() => toggleGroup(group.id)}
                       >
-                        {group.icon}
-                        <span className="ml-2">{group.title}</span>
+                        <div className="mr-2 transition-transform duration-200 hover:scale-110">{group.icon}</div>
+                        <span className="ml-1">{group.title}</span>
                         <ChevronDown
                           className={cn(
-                            "ml-auto h-4 w-4 transition-transform duration-200",
+                            "ml-auto h-5 w-5 transition-transform duration-300",
                             expandedGroups[group.id as keyof typeof expandedGroups] ? "transform rotate-180" : "",
                           )}
                         />
                       </div>
                       {expandedGroups[group.id as keyof typeof expandedGroups] && (
-                        <ul className="mt-1 space-y-1 px-2">
+                        <ul className="mt-1 space-y-1 px-2 animate-slideInUp">
                           {group.items.map((item) => (
                             <li key={item.id}>
                               <Button
                                 variant={activeTab === item.id ? "default" : "ghost"}
                                 className={cn(
-                                  "w-full justify-start transition-all duration-200 group pl-3 pr-2 py-2 h-auto",
+                                  "w-full justify-start transition-all duration-300 group pl-3 pr-2 py-3 h-auto",
                                   activeTab === item.id
-                                    ? "bg-primary text-primary-foreground font-medium"
-                                    : "hover:bg-muted",
+                                    ? "bg-primary text-primary-foreground font-medium shadow-md"
+                                    : "hover:bg-muted hover:scale-[1.02]",
                                 )}
                                 onClick={() => navigateTo(item.id)}
+                                onMouseEnter={() => setHoveredItem(item.id)}
+                                onMouseLeave={() => setHoveredItem(null)}
                               >
-                                <div className="flex-shrink-0">{item.icon}</div>
+                                <div
+                                  className={cn(
+                                    "flex-shrink-0 transition-transform duration-300",
+                                    hoveredItem === item.id && "scale-110",
+                                  )}
+                                >
+                                  {item.icon}
+                                </div>
                                 <div className="ml-3 flex items-center justify-between w-full">
-                                  <span className="text-sm">{item.label}</span>
+                                  <span className="text-sm font-medium">{item.label}</span>
                                   {item.badge && item.badge}
                                 </div>
                               </Button>
@@ -479,10 +497,10 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
                   </div>
                   <Button
                     variant="default"
-                    className="w-full justify-start bg-gray-800 hover:bg-gray-700 text-white"
+                    className="w-full justify-start bg-gray-800 hover:bg-gray-700 text-white transition-all duration-300 hover:scale-[1.02]"
                     onClick={handleLogout}
                   >
-                    <LogOut className="h-5 w-5 mr-2" />
+                    <LogOut className="h-6 w-6 mr-2" />
                     Logout
                   </Button>
                 </div>
@@ -499,12 +517,16 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
 
   // Desktop sidebar
   return (
-    <TooltipProvider>
+    <TooltipProvider delayDuration={200}>
       <div
         className={`fixed left-0 top-0 z-30 flex h-screen flex-col border-r bg-background transition-all duration-300 ease-in-out ${
-          collapsed ? "w-[70px]" : "w-[250px]"
+          collapsed ? "w-[80px]" : "w-[260px]"
         }`}
-        style={{ willChange: "width", contain: "layout" }}
+        style={{
+          willChange: "width",
+          contain: "layout",
+          position: "fixed", // Ensure it stays fixed
+        }}
       >
         {/* Logo and collapse button */}
         <div className="flex items-center justify-between p-4 border-b h-16">
@@ -516,17 +538,24 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
           <Button
             variant="ghost"
             size="icon"
-            className={cn("ml-auto", collapsed && "mx-auto")}
+            className={cn("ml-auto transition-all duration-300 hover:bg-primary/10", collapsed && "mx-auto")}
             onClick={toggleCollapse}
           >
-            <ChevronRight className={cn("h-5 w-5 transition-transform duration-300", !collapsed && "rotate-180")} />
+            <ChevronRight className={cn("h-6 w-6 transition-transform duration-300", !collapsed && "rotate-180")} />
           </Button>
         </div>
 
         {/* User info */}
-        <div className={cn("flex items-center p-4 border-b bg-muted/30", collapsed ? "justify-center" : "")}>
+        <div
+          className={cn(
+            "flex items-center p-4 border-b bg-muted/30 transition-all duration-300",
+            collapsed ? "justify-center" : "",
+          )}
+        >
           <div className="relative">
-            <Avatar className="h-10 w-10 border-2 border-primary/20">{getAvatarContent()}</Avatar>
+            <Avatar className="h-12 w-12 border-2 border-primary/20 transition-all duration-300 hover:border-primary/50 hover:scale-105">
+              {getAvatarContent()}
+            </Avatar>
             <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-green-500 border-2 border-white"></span>
           </div>
           {!collapsed && (
@@ -543,14 +572,14 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
             <div key={group.id} className="mb-4">
               {!collapsed && (
                 <div
-                  className="flex items-center px-4 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer"
+                  className="flex items-center px-4 py-2 text-xs font-medium text-muted-foreground uppercase tracking-wider cursor-pointer hover:text-foreground transition-colors duration-200"
                   onClick={() => toggleGroup(group.id)}
                 >
-                  {group.icon}
+                  <div className="transition-transform duration-200 hover:scale-110">{group.icon}</div>
                   <span className="ml-2">{group.title}</span>
                   <ChevronDown
                     className={cn(
-                      "ml-auto h-4 w-4 transition-transform duration-200",
+                      "ml-auto h-5 w-5 transition-transform duration-300",
                       expandedGroups[group.id as keyof typeof expandedGroups] ? "transform rotate-180" : "",
                     )}
                   />
@@ -558,7 +587,13 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
               )}
               {/* Section headers are not shown when collapsed */}
               {(expandedGroups[group.id as keyof typeof expandedGroups] || collapsed) && (
-                <ul className={cn("space-y-1", collapsed ? "px-2 mb-4" : "px-3 mt-1")}>
+                <ul
+                  className={cn(
+                    "space-y-2",
+                    collapsed ? "px-2 mb-4" : "px-3 mt-1",
+                    !collapsed && expandedGroups[group.id as keyof typeof expandedGroups] && "animate-slideInUp",
+                  )}
+                >
                   {group.items.map((item) => (
                     <li key={item.id}>
                       {collapsed ? (
@@ -567,42 +602,61 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
                             <Button
                               variant={activeTab === item.id ? "default" : "ghost"}
                               className={cn(
-                                "w-full justify-center transition-all duration-200 group p-2",
+                                "w-full justify-center transition-all duration-300 group p-3 h-16",
                                 activeTab === item.id
-                                  ? "bg-primary text-primary-foreground font-medium"
-                                  : "hover:bg-muted",
+                                  ? "bg-primary text-primary-foreground font-medium shadow-md"
+                                  : "hover:bg-muted/70 hover:scale-105",
                               )}
                               onClick={() => navigateTo(item.id)}
+                              onMouseEnter={() => setHoveredItem(item.id)}
+                              onMouseLeave={() => setHoveredItem(null)}
                             >
-                              <div className="flex items-center justify-center">
+                              <div className="flex items-center justify-center relative">
                                 <div
                                   className={cn(
-                                    "flex-shrink-0",
+                                    "flex-shrink-0 transition-transform duration-300",
+                                    (hoveredItem === item.id || activeTab === item.id) && "scale-110",
                                     activeTab === item.id ? "" : "text-muted-foreground group-hover:text-foreground",
                                   )}
                                 >
                                   {item.icon}
                                 </div>
-                                {item.badge && <span className="absolute -top-1 -right-1">{item.badge}</span>}
+                                {item.badge && <span className="absolute -top-2 -right-2 z-10">{item.badge}</span>}
                               </div>
                             </Button>
                           </TooltipTrigger>
-                          <TooltipContent side="right">{item.label}</TooltipContent>
+                          <TooltipContent
+                            side="right"
+                            className="bg-primary text-primary-foreground font-medium px-3 py-1.5 text-sm"
+                          >
+                            {item.label}
+                          </TooltipContent>
                         </Tooltip>
                       ) : (
                         <Button
                           variant={activeTab === item.id ? "default" : "ghost"}
                           className={cn(
-                            "w-full justify-start transition-all duration-200 group pl-3 pr-2 py-2 h-auto",
-                            activeTab === item.id ? "bg-primary text-primary-foreground font-medium" : "hover:bg-muted",
+                            "w-full justify-start transition-all duration-300 group pl-3 pr-2 py-3 h-auto",
+                            activeTab === item.id
+                              ? "bg-primary text-primary-foreground font-medium shadow-md"
+                              : "hover:bg-muted/70 hover:scale-[1.02]",
                           )}
                           onClick={() => navigateTo(item.id)}
+                          onMouseEnter={() => setHoveredItem(item.id)}
+                          onMouseLeave={() => setHoveredItem(null)}
                         >
-                          <div className="flex-shrink-0">{item.icon}</div>
+                          <div
+                            className={cn(
+                              "flex-shrink-0 transition-transform duration-300",
+                              (hoveredItem === item.id || activeTab === item.id) && "scale-110",
+                            )}
+                          >
+                            {item.icon}
+                          </div>
                           <div className="ml-3 flex items-center justify-between w-full">
                             <span
                               className={cn(
-                                "text-sm",
+                                "text-sm font-medium",
                                 activeTab === item.id ? "" : "text-muted-foreground group-hover:text-foreground",
                               )}
                             >
@@ -621,7 +675,7 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
         </nav>
 
         {/* Footer */}
-        <div className={cn("p-4 border-t", collapsed ? "flex justify-center" : "")}>
+        <div className={cn("p-4 border-t", collapsed ? "flex flex-col items-center" : "")}>
           {!collapsed ? (
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -629,20 +683,30 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
                 <NotificationCenter />
               </div>
               <ModeToggle />
-              <Button variant="ghost" size="sm" onClick={handleLogout}>
-                <LogOut className="h-4 w-4 mr-2" />
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleLogout}
+                className="transition-all duration-300 hover:bg-red-500/10 hover:text-red-500"
+              >
+                <LogOut className="h-5 w-5 mr-2" />
                 Logout
               </Button>
             </div>
           ) : (
-            <div className="flex flex-col items-center gap-4">
+            <div className="flex flex-col items-center gap-5">
               <OfflineDetector />
               <NotificationCenter />
               <ModeToggle />
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button variant="ghost" size="icon" onClick={handleLogout}>
-                    <LogOut className="h-5 w-5" />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleLogout}
+                    className="h-10 w-10 transition-all duration-300 hover:bg-red-500/10 hover:text-red-500"
+                  >
+                    <LogOut className="h-6 w-6" />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent side="right">Logout</TooltipContent>
