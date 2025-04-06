@@ -20,20 +20,16 @@ import {
   FileText,
   Download,
   Upload,
-  AlertCircle,
   CheckCircle2,
   ChevronDown,
   ChevronUp,
-  Sparkles,
   Save,
 } from "lucide-react"
 import { useAuth } from "@/context/auth-context"
 import { useTeamContext } from "@/context/team-context"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 // Client interface
 interface Client {
@@ -59,22 +55,6 @@ interface ReportData {
 interface DateRange {
   from?: Date
   to?: Date
-}
-
-// Templates for quick filling
-const TEMPLATES = {
-  conversationSummary: [
-    "Client expressed interest in our premium package. Discussed benefits and pricing options.",
-    "Addressed client's concerns about security. Explained our protection measures and guarantees.",
-    "Client is considering upgrading their current plan. Provided comparison of features.",
-    "First contact with client. Introduced our services and collected basic requirements.",
-  ],
-  planForTomorrow: [
-    "Follow up with pricing quote and detailed feature list as requested.",
-    "Schedule a demo call to showcase the platform's capabilities.",
-    "Send additional information about security features and compliance certificates.",
-    "Check in to answer any remaining questions and assist with decision making.",
-  ],
 }
 
 // Initial empty client template
@@ -229,15 +209,6 @@ export default function ReportsPage() {
 
     // Auto-save after a short delay
     saveReportData()
-  }
-
-  // Apply a template to a field
-  const applyTemplate = (clientId: string, field: "conversationSummary" | "planForTomorrow", template: string) => {
-    updateClient(clientId, field, template)
-    toast({
-      title: "Template applied",
-      description: "You can edit the text to customize it further",
-    })
   }
 
   // Check if client has required information
@@ -553,10 +524,10 @@ export default function ReportsPage() {
       try {
         const data = JSON.parse(savedData)
         setAgentName(data.agentName || "")
-        setAddedToday(Number(data.addedToday) || 0)
-        setMonthlyAdded(Number(data.monthlyAdded) || 0)
-        setOpenShops(Number(data.openShops) || 0)
-        setAgentDeposits(Number(data.deposits) || 0)
+        setAddedToday(data.addedToday || 0)
+        setMonthlyAdded(data.monthlyAdded || 0)
+        setOpenShops(data.openShops || 0)
+        setAgentDeposits(data.deposits || 0)
 
         const loadedClients = data.clients || [emptyClient()]
         setReportClients(loadedClients)
@@ -749,14 +720,6 @@ export default function ReportsPage() {
 
         {expandedSections.clients && (
           <CardContent className="pt-4">
-            <Alert className="bg-amber-50 border-amber-200 mb-4">
-              <AlertCircle className="h-4 w-4 text-amber-600" />
-              <AlertTitle className="text-amber-800">Required Fields</AlertTitle>
-              <AlertDescription className="text-amber-700">
-                Fields marked with <span className="text-red-500">*</span> are required for report generation.
-              </AlertDescription>
-            </Alert>
-
             <div className="space-y-4">
               {reportClients.map((client, index) => {
                 const status = getClientCompletionStatus(client)
@@ -863,41 +826,12 @@ export default function ReportsPage() {
 
                         {/* Required Fields with Templates */}
                         <div className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <label
-                              htmlFor={`conversationSummary-${client.id}`}
-                              className="text-sm font-medium flex items-center"
-                            >
-                              Conversation Summary <span className="text-red-500 ml-1">*</span>
-                            </label>
-
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <div className="relative">
-                                    <Select
-                                      onValueChange={(value) => applyTemplate(client.id, "conversationSummary", value)}
-                                    >
-                                      <SelectTrigger className="h-7 text-xs w-auto min-w-[120px] bg-muted/50">
-                                        <Sparkles className="h-3 w-3 mr-1" />
-                                        <span>Quick Templates</span>
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        {TEMPLATES.conversationSummary.map((template, i) => (
-                                          <SelectItem key={i} value={template}>
-                                            {template.length > 40 ? template.substring(0, 40) + "..." : template}
-                                          </SelectItem>
-                                        ))}
-                                      </SelectContent>
-                                    </Select>
-                                  </div>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p className="text-xs">Apply a template to quickly fill this field</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          </div>
+                          <label
+                            htmlFor={`conversationSummary-${client.id}`}
+                            className="text-sm font-medium flex items-center"
+                          >
+                            Conversation Summary <span className="text-red-500 ml-1">*</span>
+                          </label>
 
                           <Textarea
                             id={`conversationSummary-${client.id}`}
@@ -919,41 +853,12 @@ export default function ReportsPage() {
                         </div>
 
                         <div className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <label
-                              htmlFor={`planForTomorrow-${client.id}`}
-                              className="text-sm font-medium flex items-center"
-                            >
-                              Plan for Tomorrow <span className="text-red-500 ml-1">*</span>
-                            </label>
-
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <div className="relative">
-                                    <Select
-                                      onValueChange={(value) => applyTemplate(client.id, "planForTomorrow", value)}
-                                    >
-                                      <SelectTrigger className="h-7 text-xs w-auto min-w-[120px] bg-muted/50">
-                                        <Sparkles className="h-3 w-3 mr-1" />
-                                        <span>Quick Templates</span>
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        {TEMPLATES.planForTomorrow.map((template, i) => (
-                                          <SelectItem key={i} value={template}>
-                                            {template.length > 40 ? template.substring(0, 40) + "..." : template}
-                                          </SelectItem>
-                                        ))}
-                                      </SelectContent>
-                                    </Select>
-                                  </div>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p className="text-xs">Apply a template to quickly fill this field</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          </div>
+                          <label
+                            htmlFor={`planForTomorrow-${client.id}`}
+                            className="text-sm font-medium flex items-center"
+                          >
+                            Plan for Tomorrow <span className="text-red-500 ml-1">*</span>
+                          </label>
 
                           <Textarea
                             id={`planForTomorrow-${client.id}`}
@@ -992,17 +897,33 @@ export default function ReportsPage() {
       </Card>
 
       {/* Report Generation Section */}
-      <Card className="shadow-sm" ref={reportContainerRef}>
+      <Card
+        className="shadow-sm border border-muted hover:shadow-md transition-shadow duration-300"
+        ref={reportContainerRef}
+      >
         <CardHeader
-          className="bg-muted/30 cursor-pointer flex flex-row items-center justify-between"
+          className="bg-muted/20 dark:bg-muted/10 cursor-pointer flex flex-row items-center justify-between p-5"
           onClick={() => toggleSection("report")}
         >
-          <div>
-            <CardTitle>Generated Report</CardTitle>
-            <CardDescription>Generate and manage your report</CardDescription>
+          <div className="flex items-center gap-3">
+            <div className="bg-background border border-muted p-2 rounded-full dark:bg-muted/20">
+              <FileText className="h-5 w-5" />
+            </div>
+            <div>
+              <CardTitle>Generate Your Report</CardTitle>
+              <CardDescription>Click here to create, export, and manage your completed report</CardDescription>
+            </div>
           </div>
-          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-            {expandedSections.report ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          <Button variant="outline" size="sm">
+            {expandedSections.report ? (
+              <span className="flex items-center gap-1">
+                <ChevronUp className="h-4 w-4" /> Hide
+              </span>
+            ) : (
+              <span className="flex items-center gap-1">
+                <ChevronDown className="h-4 w-4" /> Show
+              </span>
+            )}
           </Button>
         </CardHeader>
 

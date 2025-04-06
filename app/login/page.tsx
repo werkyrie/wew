@@ -63,7 +63,7 @@ export default function LoginPage() {
             // @ts-ignore
             window.particlesJS("particles-js", {
               particles: {
-                number: { value: 80, density: { enable: true, value_area: 800 } },
+                number: { value: 100, density: { enable: true, value_area: 1000 } },
                 color: { value: "#808080" },
                 shape: {
                   type: "circle",
@@ -71,27 +71,27 @@ export default function LoginPage() {
                   polygon: { nb_sides: 5 },
                 },
                 opacity: {
-                  value: 0.3,
-                  random: false,
-                  anim: { enable: false, speed: 1, opacity_min: 0.1, sync: false },
+                  value: 0.2,
+                  random: true,
+                  anim: { enable: true, speed: 0.5, opacity_min: 0.1, sync: false },
                 },
                 size: {
                   value: 3,
                   random: true,
-                  anim: { enable: false, speed: 40, size_min: 0.1, sync: false },
+                  anim: { enable: true, speed: 2, size_min: 0.1, sync: false },
                 },
                 line_linked: {
                   enable: true,
                   distance: 150,
                   color: "#808080",
-                  opacity: 0.2,
+                  opacity: 0.15,
                   width: 1,
                 },
                 move: {
                   enable: true,
-                  speed: 2,
+                  speed: 1,
                   direction: "none",
-                  random: false,
+                  random: true,
                   straight: false,
                   out_mode: "out",
                   bounce: false,
@@ -106,7 +106,7 @@ export default function LoginPage() {
                   resize: true,
                 },
                 modes: {
-                  grab: { distance: 140, line_linked: { opacity: 0.5 } },
+                  grab: { distance: 140, line_linked: { opacity: 0.4 } },
                   bubble: { distance: 400, size: 40, duration: 2, opacity: 8, speed: 3 },
                   repulse: { distance: 200, duration: 0.4 },
                   push: { particles_nb: 4 },
@@ -192,8 +192,8 @@ export default function LoginPage() {
       },
     },
     hover: {
-      scale: 1.03,
-      boxShadow: "0 10px 25px -5px rgba(124, 58, 237, 0.5)",
+      scale: 1.02,
+      boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.3)",
       transition: { type: "spring", stiffness: 400, damping: 10 },
     },
   }
@@ -225,14 +225,16 @@ export default function LoginPage() {
           </Button>
         </div>
         {/* Background gradient and pattern */}
-        <div className="absolute inset-0 bg-gradient-to-br from-gray-100 via-gray-200 to-gray-300 dark:from-gray-800 dark:via-gray-900 dark:to-black z-0">
+        <div className="absolute inset-0 bg-gradient-to-br from-gray-50 via-gray-100 to-gray-300 dark:from-gray-900 dark:via-gray-800 dark:to-gray-950 z-0">
           <div className="absolute inset-0 bg-grid-white/[0.05] bg-[length:20px_20px]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(0,0,0,0.02)_1px,_transparent_1px)] bg-[length:24px_24px] dark:bg-[radial-gradient(circle_at_center,_rgba(255,255,255,0.03)_1px,_transparent_1px)]" />
           <div className="absolute inset-0 backdrop-blur-[100px]" />
 
           {/* Animated background blobs */}
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-gray-300 dark:bg-gray-600 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob" />
-          <div className="absolute top-1/3 right-1/4 w-96 h-96 bg-gray-400 dark:bg-gray-700 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000" />
-          <div className="absolute bottom-1/4 left-1/3 w-96 h-96 bg-gray-200 dark:bg-gray-500 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-4000" />
+          <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-gray-200/50 dark:bg-gray-700/30 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob" />
+          <div className="absolute top-1/3 right-1/4 w-[600px] h-[600px] bg-gray-300/50 dark:bg-gray-600/30 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000" />
+          <div className="absolute bottom-1/4 left-1/3 w-[400px] h-[400px] bg-gray-100/50 dark:bg-gray-800/30 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-4000" />
+          <div className="absolute bottom-1/3 right-1/3 w-[300px] h-[300px] bg-gray-400/50 dark:bg-gray-500/30 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-3000" />
         </div>
 
         {/* Interactive particles */}
@@ -247,7 +249,7 @@ export default function LoginPage() {
             transition={{ delay: 0.4, duration: 0.5 }}
             className="w-full max-w-md z-10"
           >
-            <Card className="login-card backdrop-blur-xl bg-white/80 dark:bg-gray-900/80 border border-gray-200 dark:border-gray-700 shadow-xl shadow-gray-300/30 dark:shadow-black/30 rounded-2xl transition-transform duration-300 ease-out">
+            <Card className="login-card backdrop-blur-xl bg-white/80 dark:bg-gray-900/80 border border-gray-200 dark:border-gray-700 shadow-xl shadow-gray-300/30 dark:shadow-black/30 rounded-2xl transition-transform duration-300 ease-out animate-float">
               <CardHeader className="space-y-1 text-center">
                 <motion.div
                   initial={{ scale: 0.8, opacity: 0 }}
@@ -338,7 +340,7 @@ export default function LoginPage() {
                   <motion.div variants={buttonVariants} whileHover="hover">
                     <Button
                       type="submit"
-                      className="w-full py-6 text-base font-medium bg-gradient-to-r from-gray-100 via-gray-200 to-gray-300 hover:bg-black hover:text-white dark:from-gray-700 dark:via-gray-800 dark:to-gray-900 dark:hover:bg-white dark:hover:text-gray-900 transition-all duration-300 rounded-xl shadow-lg hover:shadow-gray-400/40 dark:hover:shadow-black/40 group"
+                      className="w-full py-6 text-base font-medium bg-gradient-to-r from-gray-100 via-gray-200 to-gray-300 hover:from-gray-800 hover:via-gray-700 hover:to-gray-900 hover:text-white dark:from-gray-700 dark:via-gray-800 dark:to-gray-900 dark:hover:from-gray-200 dark:hover:via-gray-100 dark:hover:to-white dark:hover:text-gray-900 transition-all duration-300 rounded-xl shadow-lg group"
                       disabled={isLoading}
                     >
                       {isLoading ? (
@@ -415,11 +417,28 @@ export default function LoginPage() {
         .animation-delay-2000 {
           animation-delay: 2s;
         }
+        .animation-delay-3000 {
+          animation-delay: 3s;
+        }
         .animation-delay-4000 {
           animation-delay: 4s;
         }
         .bg-grid-white {
           background-image: url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 0V20M0 1H20' stroke='white' strokeOpacity='0.1'/%3E%3C/svg%3E%0A");
+        }
+        @keyframes float {
+          0% {
+            transform: translateY(0px);
+          }
+          50% {
+            transform: translateY(-10px);
+          }
+          100% {
+            transform: translateY(0px);
+          }
+        }
+        .animate-float {
+          animation: float 6s ease-in-out infinite;
         }
       `}</style>
     </ThemeProvider>

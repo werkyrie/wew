@@ -111,27 +111,14 @@ export default function WelcomeHero() {
     <div className="space-y-4">
       <Card className="border-none shadow-md overflow-hidden">
         <div className="relative">
-          {/* Background gradient with pattern - changed to black and white */}
+          {/* Background gradient - black and white */}
           <div
             className={`absolute inset-0 ${
               theme === "dark"
                 ? "bg-gradient-to-r from-black via-gray-900 to-black"
                 : "bg-gradient-to-r from-gray-50 via-white to-gray-50"
             }`}
-          >
-            {/* Decorative pattern */}
-            <div className="absolute inset-0 opacity-10">
-              <svg className="h-full w-full" xmlns="http://www.w3.org/2000/svg">
-                <defs>
-                  <pattern id="hero-pattern" patternUnits="userSpaceOnUse" width="100" height="100">
-                    <path d="M0 0h100v100H0z" fill="none" />
-                    <path d="M100 0H0v100h100V0zM50 30a20 20 0 110 40 20 20 0 010-40z" fill="currentColor" />
-                  </pattern>
-                </defs>
-                <rect width="100%" height="100%" fill="url(#hero-pattern)" />
-              </svg>
-            </div>
-          </div>
+          />
 
           <div className="relative p-6 md:p-8">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
