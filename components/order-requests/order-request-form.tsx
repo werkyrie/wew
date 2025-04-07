@@ -9,19 +9,9 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import {
-  AlertCircle,
-  CalendarIcon,
-  PlusCircle,
-  Search,
-  User,
-  Building,
-  MapPin,
-  DollarSign,
-  MessageSquare,
-} from "lucide-react"
+import { AlertCircle, CalendarIcon, Search, User, Building, MapPin, DollarSign, MessageSquare } from "lucide-react"
 import { format } from "date-fns"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
@@ -198,18 +188,9 @@ export default function OrderRequestForm() {
   }
 
   return (
-    <Card className="animate-fade-in">
-      <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 rounded-t-lg border-b">
-        <CardTitle className="flex items-center gap-2">
-          <PlusCircle className="h-5 w-5 text-blue-500" />
-          Create New Order Request
-        </CardTitle>
-        <CardDescription>
-          Fill out this form to request a new order. Your request will be reviewed by an administrator.
-        </CardDescription>
-      </CardHeader>
+    <Card>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4 pt-4">
+        <form onSubmit={handleSubmit} className="space-y-4 pt-6">
           <div className="space-y-2">
             <Label htmlFor="shopId" className="flex items-center gap-1">
               <Building className="h-4 w-4" /> Shop ID
@@ -247,7 +228,9 @@ export default function OrderRequestForm() {
                         <div className="font-medium">{client.shopId}</div>
                         <div className="text-sm text-muted-foreground">{client.clientName}</div>
                       </div>
-                      {client.status && <Badge className={getStatusColor(client.status)}>{client.status}</Badge>}
+                      {client.status && (
+                        <Badge variant={client.status === "Active" ? "default" : "secondary"}>{client.status}</Badge>
+                      )}
                     </div>
                   ))}
                 </div>

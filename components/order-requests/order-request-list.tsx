@@ -226,23 +226,18 @@ export default function OrderRequestList() {
           )}
         </div>
       ) : (
-        <div className="flex flex-col items-center justify-center py-16 px-4 border rounded-lg bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 border-slate-200 dark:border-slate-800 shadow-sm">
-          <div className="relative mb-6">
-            <div className="absolute -inset-1 bg-blue-100 dark:bg-blue-900/30 rounded-full blur-sm opacity-70"></div>
-            <div className="relative bg-white dark:bg-slate-800 p-5 rounded-full border border-slate-200 dark:border-slate-700">
-              <ClipboardList className="h-10 w-10 text-blue-500 dark:text-blue-400" />
-            </div>
-          </div>
-          <h3 className="text-xl font-semibold text-slate-800 dark:text-slate-200 mb-3">No order requests found</h3>
-          <p className="text-slate-500 dark:text-slate-400 text-center max-w-md">
+        <div className="flex flex-col items-center justify-center py-12 px-4 border rounded-lg bg-muted/30 text-center">
+          <ClipboardList className="h-12 w-12 text-muted-foreground mb-4" />
+          <h3 className="text-xl font-medium mb-2">No order requests found</h3>
+          <p className="text-muted-foreground max-w-md mb-4">
             {searchTerm || statusFilter !== "all" || locationFilter !== "all" || agentFilter !== "all"
               ? "Try adjusting your search filters to find what you're looking for."
               : "There are currently no order requests in the system."}
           </p>
-          <div className="mt-6 flex items-center gap-2 text-sm text-slate-400 dark:text-slate-500">
-            <div className="h-px w-16 bg-slate-200 dark:bg-slate-700"></div>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <div className="h-px w-10 bg-border"></div>
             <span>Use the filters above to refine results</span>
-            <div className="h-px w-16 bg-slate-200 dark:bg-slate-700"></div>
+            <div className="h-px w-10 bg-border"></div>
           </div>
         </div>
       )}
