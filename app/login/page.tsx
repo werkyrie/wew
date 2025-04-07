@@ -13,6 +13,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { Fingerprint, Mail, ArrowRight, Moon, Sun } from "lucide-react"
 import { motion } from "framer-motion"
 import "particles.js"
+import { Checkbox } from "@/components/ui/checkbox"
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
@@ -24,6 +25,7 @@ export default function LoginPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const timeout = searchParams.get("timeout")
+  const [rememberMe, setRememberMe] = useState(false)
 
   // Set mounted state after component mounts
   useEffect(() => {
@@ -147,7 +149,7 @@ export default function LoginPage() {
     setErrorMessage(null)
 
     try {
-      const result = await login(email, password)
+      const result = await login(email, password, rememberMe)
       if (!result.success) {
         setErrorMessage(result.message)
       }
@@ -335,6 +337,21 @@ export default function LoginPage() {
                         required
                       />
                     </div>
+                  </motion.div>
+
+                  <motion.div className="flex items-center space-x-2" variants={itemVariants}>
+                    <Checkbox
+                      id="remember"
+                      checked={rememberMe}
+                      onCheckedChange={(checked) => setRememberMe(checked === true)}
+                      className="data-[state=checked]:bg-gray-800 data-[state=checked]:dark:bg-gray-200"
+                    />
+                    <label
+                      htmlFor="remember"
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-gray-700 dark:text-gray-300"
+                    >
+                      Remember me for 5 days
+                    </label>
                   </motion.div>
 
                   <motion.div variants={buttonVariants} whileHover="hover">

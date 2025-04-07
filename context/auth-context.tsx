@@ -26,7 +26,7 @@ export interface AppUser {
 // Auth context interface
 interface AuthContextType {
   user: AppUser | null
-  login: (email: string, password: string) => Promise<{ success: boolean; message: string }>
+  login: (email: string, password: string, rememberMe?: boolean) => Promise<{ success: boolean; message: string }>
   logout: () => Promise<void>
   isAuthenticated: boolean
   isAdmin: boolean
@@ -103,9 +103,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     const checkSessionTimeout = () => {
-      if (user && Date.now() - lastActivity > 30 * 60 * 1000) {
-        logout()
-        router.push("/login?timeout=true")
+      if (user) {
+        const rememberMe = localStorage.getItem("rememberMe") === "true"
+        const rememberMeExpiry = localStorage.getItem("rememberMeExpiry")
+
+        if (rememberMe && rememberMeExpiry) {
+          // If "Remember me" is active, check if the 5-day period has expired
+          if (Date.now() > Number.parseInt(rememberMeExpiry)) {
+            logout()
+            router.push("/login?timeout=true")
+          }
+        } else {
+          // Regular 30-minute session timeout
+          if (Date.now() - lastActivity > 30 * 60 * 1000) {
+            logout()
+            router.push("/login?timeout=true")
+          }
+        }
       }
     }
 
@@ -127,11 +141,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [user, lastActivity, router])
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string, rememberMe = false) => {
     try {
       setLoginError(null)
       // Attempt login with Firebase
       const userCredential = await signInWithEmailAndPassword(auth, email, password)
+
+      // Set persistence based on rememberMe
+      if (rememberMe) {
+        // This is handled by the session timeout logic
+        setLastActivity(Date.now())
+        localStorage.setItem("rememberMe", "true")
+        localStorage.setItem("rememberMeExpiry", (Date.now() + 5 * 24 * 60 * 60 * 1000).toString())
+      } else {
+        localStorage.removeItem("rememberMe")
+        localStorage.removeItem("rememberMeExpiry")
+      }
 
       // Get user role from Firestore
       const userDoc = await getDoc(doc(db, "users", userCredential.user.uid))
