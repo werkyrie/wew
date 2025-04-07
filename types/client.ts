@@ -1,3 +1,4 @@
+import type React from "react"
 export interface Client {
   shopId: string
   clientName: string
@@ -71,11 +72,55 @@ export interface TimelineEvent {
   paymentMode?: string
 }
 
+// New interface for chat messages
+export interface ChatMessage {
+  id: string
+  orderRequestId: string
+  userId: string
+  userName: string
+  content: string
+  timestamp: number
+  isAdmin: boolean
+  readBy?: string[]
+}
+
 // Update the ClientContextType interface to include the new bulk functions
 export interface ClientContextType {
-  // ... existing properties
-  bulkAddDeposits: (deposits: Deposit[]) => void
-  bulkAddWithdrawals: (withdrawals: Withdrawal[]) => void
-  // ... rest of the properties
+  clients: Client[]
+  orders: Order[]
+  deposits: Deposit[]
+  withdrawals: Withdrawal[]
+  orderRequests: OrderRequest[]
+  loading: boolean
+  addClient: (client: Client) => Promise<void>
+  updateClient: (client: Client) => Promise<void>
+  deleteClient: (shopId: string) => Promise<void>
+  bulkDeleteClients: (shopIds: string[]) => Promise<void>
+  addOrder: (order: Order) => Promise<void>
+  updateOrder: (order: Order) => Promise<void>
+  deleteOrder: (orderId: string) => Promise<void>
+  addDeposit: (deposit: Deposit) => Promise<void>
+  updateDeposit: (deposit: Deposit) => Promise<void>
+  deleteDeposit: (depositId: string) => Promise<void>
+  addWithdrawal: (withdrawal: Withdrawal) => Promise<void>
+  updateWithdrawal: (withdrawal: Withdrawal) => Promise<void>
+  deleteWithdrawal: (withdrawalId: string) => Promise<void>
+  addOrderRequest: (request: Omit<OrderRequest, "id" | "status" | "createdAt">) => Promise<void>
+  updateOrderRequestStatus: (id: string, status: OrderRequestStatus) => Promise<void>
+  deleteOrderRequest: (id: string) => Promise<void>
+  isShopIdUnique: (shopId: string, currentId?: string) => Promise<boolean>
+  generateOrderId: () => string
+  generateDepositId: () => string
+  generateWithdrawalId: () => string
+  resetAllData: () => Promise<void>
+  exportData: () => Promise<string>
+  importData: (jsonData: string) => Promise<void>
+  bulkAddDeposits: (deposits: Deposit[]) => Promise<void>
+  bulkAddWithdrawals: (withdrawals: Withdrawal[]) => Promise<void>
+  refreshData: () => Promise<void>
+  setDeposits: React.Dispatch<React.SetStateAction<Deposit[]>>
+  setWithdrawals: React.Dispatch<React.SetStateAction<Withdrawal[]>>
+  addChatMessage: (message: Omit<ChatMessage, "id" | "timestamp">) => Promise<void>
+  getChatMessages: (orderRequestId: string) => Promise<ChatMessage[]>
 }
 

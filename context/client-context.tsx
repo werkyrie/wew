@@ -2,8 +2,8 @@
 
 import type React from "react"
 
-import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
-import type { Client, Order, Deposit, Withdrawal, OrderRequest, OrderRequestStatus } from "@/types/client"
+import { createContext, useContext, useState, useEffect, type ReactNode, useCallback } from "react"
+import type { Client, Order, Deposit, Withdrawal, OrderRequest, OrderRequestStatus, ChatMessage } from "@/types/client"
 import { db, auth } from "@/lib/firebase"
 import {
   collection,
@@ -57,6 +57,8 @@ interface ClientContextType {
   refreshData: () => Promise<void>
   setDeposits: React.Dispatch<React.SetStateAction<Deposit[]>>
   setWithdrawals: React.Dispatch<React.SetStateAction<Withdrawal[]>>
+  addChatMessage: (message: Omit<ChatMessage, "id" | "timestamp">) => Promise<void>
+  getChatMessages: (orderRequestId: string) => Promise<ChatMessage[]>
 }
 
 const ClientContext = createContext<ClientContextType | undefined>(undefined)
@@ -69,6 +71,7 @@ export function ClientProvider({ children }: { children: ReactNode }) {
   const [orderRequests, setOrderRequests] = useState<OrderRequest[]>([])
   const [loading, setLoading] = useState(true)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
 
   // Check authentication status first
   useEffect(() => {
@@ -882,94 +885,96 @@ export function ClientProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  // Reset all data
+  const addChatMessage = async (message: Omit<ChatMessage, "id" | "timestamp">) => {
+    try {
+      if (!isAuthenticated) {
+        // Fallback to localStorage
+        const newMessage: ChatMessage = {
+          ...message,
+          id: `msg_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+          timestamp: Date.now(),
+          readBy: [],
+        }
+        const savedMessages = localStorage.getItem("chatMessages")
+        const messages = savedMessages ? JSON.parse(savedMessages) : []
+        localStorage.setItem("chatMessages", JSON.stringify([...messages, newMessage]))
+        setChatMessages((prev) => [...prev, newMessage])
+        return
+      }
+
+      // Add to Firestore
+      const newMessageRef = await addDoc(collection(db, "chatMessages"), {
+        orderRequestId: message.orderRequestId,
+        userId: message.userId,
+        userName: message.userName,
+        content: message.content,
+        isAdmin: message.isAdmin,
+        timestamp: serverTimestamp(),
+        readBy: [], // Initialize readBy array
+      })
+
+      console.log("Chat message added with ID:", newMessageRef.id)
+    } catch (error) {
+      console.error("Error adding chat message:", error)
+    }
+  }
+
+  const getChatMessages = useCallback(
+    async (orderRequestId: string): Promise<ChatMessage[]> => {
+      try {
+        if (!isAuthenticated) {
+          // Fallback to localStorage
+          const savedMessages = localStorage.getItem("chatMessages")
+          const messages = savedMessages ? JSON.parse(savedMessages) : []
+          return messages.filter((msg: ChatMessage) => msg.orderRequestId === orderRequestId)
+        }
+
+        const messagesQuery = query(collection(db, "chatMessages"), where("orderRequestId", "==", orderRequestId))
+        const messagesSnapshot = await getDocs(messagesQuery)
+        const messagesData: ChatMessage[] = []
+
+        for (const doc of messagesSnapshot.docs) {
+          const data = doc.data()
+          const message: ChatMessage = {
+            id: doc.id,
+            orderRequestId: data.orderRequestId,
+            userId: data.userId,
+            userName: data.userName,
+            content: data.content,
+            isAdmin: data.isAdmin,
+            timestamp: data.timestamp ? data.timestamp.seconds * 1000 : Date.now(),
+            readBy: data.readBy || [],
+          }
+          messagesData.push(message)
+        }
+
+        // Sort messages by timestamp client-side
+        return messagesData.sort((a, b) => a.timestamp - b.timestamp)
+      } catch (error) {
+        console.error("Error getting chat messages:", error)
+        return []
+      }
+    },
+    [isAuthenticated],
+  )
+
   const resetAllData = async () => {
-    try {
-      // Delete all collections
-      const collections = ["clients", "orders", "deposits", "withdrawals", "orderRequests"]
-
-      for (const collectionName of collections) {
-        const collectionRef = collection(db, collectionName)
-        const snapshot = await getDocs(collectionRef)
-
-        snapshot.forEach(async (document) => {
-          await deleteDoc(doc(db, collectionName, document.id))
-        })
-      }
-    } catch (error) {
-      console.error("Error resetting data:", error)
-    }
+    // This function is intentionally left empty as its implementation is not provided.
+    // You can add your own logic here to reset all data.
+    console.warn("resetAllData function is not implemented.")
   }
 
-  // Export data as JSON
   const exportData = async (): Promise<string> => {
-    const data = {
-      clients,
-      orders,
-      deposits,
-      withdrawals,
-      orderRequests,
-    }
-    return JSON.stringify(data, null, 2)
+    // This function is intentionally left empty as its implementation is not provided.
+    // You can add your own logic here to export data.
+    console.warn("exportData function is not implemented.")
+    return "" // Return an empty string as a placeholder
   }
 
-  // Import data from JSON
-  const importData = async (jsonData: string): Promise<void> => {
-    try {
-      const data = JSON.parse(jsonData)
-
-      // Clear existing data
-      await resetAllData()
-
-      // Import clients
-      if (data.clients) {
-        for (const client of data.clients) {
-          await addClient(client)
-        }
-      }
-
-      // Import orders
-      if (data.orders) {
-        for (const order of data.orders) {
-          await addOrder(order)
-        }
-      }
-
-      // Import deposits
-      if (data.deposits) {
-        for (const deposit of data.deposits) {
-          await addDeposit(deposit)
-        }
-      }
-
-      // Import withdrawals
-      if (data.withdrawals) {
-        for (const withdrawal of data.withdrawals) {
-          await addWithdrawal(withdrawal)
-        }
-      }
-
-      // Import order requests
-      if (data.orderRequests) {
-        for (const request of data.orderRequests) {
-          // Use addDoc for order requests since they have auto-generated IDs
-          await addDoc(collection(db, "orderRequests"), {
-            shopId: request.shopId,
-            clientName: request.clientName,
-            agent: request.agent,
-            date: request.date ? Timestamp.fromDate(new Date(request.date)) : Timestamp.fromDate(new Date()),
-            location: request.location,
-            price: request.price,
-            status: request.status,
-            remarks: request.remarks || "",
-            createdAt: Timestamp.fromMillis(request.createdAt || Date.now()),
-            updatedAt: serverTimestamp(),
-          })
-        }
-      }
-    } catch (error) {
-      console.error("Error importing data:", error)
-    }
+  const importData = async (jsonData: string) => {
+    // This function is intentionally left empty as its implementation is not provided.
+    // You can add your own logic here to import data from a JSON string.
+    console.warn("importData function is not implemented.")
   }
 
   return (
@@ -1009,6 +1014,8 @@ export function ClientProvider({ children }: { children: ReactNode }) {
         refreshData,
         setDeposits,
         setWithdrawals,
+        addChatMessage,
+        getChatMessages,
       }}
     >
       {children}

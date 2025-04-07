@@ -1,6 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { CardContent } from "@/components/ui/card"
+
+import { Card } from "@/components/ui/card"
+
+import { useState, useEffect, useCallback } from "react"
 import { useClientContext } from "@/context/client-context"
 import { useAuth } from "@/context/auth-context"
 import { Button } from "@/components/ui/button"
@@ -13,16 +17,13 @@ import {
   MapPin,
   DollarSign,
   User,
-  Store,
   MessageSquare,
   Trash2,
   ClipboardCopy,
-  ChevronDown,
-  ChevronUp,
 } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import type { OrderRequest, OrderRequestStatus } from "@/types/client"
-import { formatCurrency, formatDate } from "@/utils/format-helpers"
+import { formatCurrency, formatDate } from "@/lib/utils"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,19 +34,21 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { Card, CardContent } from "@/components/ui/card"
+import ChatBox from "./chat-box"
 
 interface OrderRequestCardProps {
   request: OrderRequest
 }
 
 export default function OrderRequestCard({ request }: OrderRequestCardProps) {
-  const { updateOrderRequestStatus, deleteOrderRequest } = useClientContext()
-  const { isAdmin } = useAuth()
+  const { updateOrderRequestStatus, deleteOrderRequest, getChatMessages } = useClientContext()
+  const { user, isAdmin } = useAuth()
   const { toast } = useToast()
   const [isUpdating, setIsUpdating] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [showDetails, setShowDetails] = useState(false)
+  const [showChat, setShowChat] = useState(false)
+  const [unreadMessageCount, setUnreadMessageCount] = useState(0)
 
   // Get status badge variant
   const getStatusVariant = (status: OrderRequestStatus): "default" | "outline" | "secondary" | "destructive" => {
@@ -117,134 +120,150 @@ ${request.remarks ? `💬 Remarks: ${request.remarks}` : ""}
     })
   }
 
+  // Check for unread messages
+  const checkForUnreadMessages = useCallback(async () => {
+    if (!user) return
+
+    const messages = await getChatMessages(request.id)
+    let unreadCount = 0
+
+    for (const message of messages) {
+      const hasRead = (message.readBy || []).includes(user.uid)
+      if (!hasRead) {
+        if (isAdmin) {
+          unreadCount++
+        } else if (!message.isAdmin) {
+          unreadCount++
+        }
+      }
+    }
+
+    setUnreadMessageCount(unreadCount)
+  }, [getChatMessages, request.id, user, isAdmin])
+
+  useEffect(() => {
+    checkForUnreadMessages()
+  }, [checkForUnreadMessages])
+
+  // Handle show chat
+  const handleShowChat = () => {
+    setShowChat(!showChat)
+    // Mark messages as read when chat is opened
+    if (!showChat) {
+      checkForUnreadMessages()
+    }
+  }
+
   return (
     <TooltipProvider>
-      <Card className="shadow-sm hover:shadow transition-shadow duration-200">
-        <CardContent className="p-5">
-          <div className="flex justify-between items-start mb-4">
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <Store className="h-4 w-4 text-muted-foreground" />
-                <h3 className="font-medium">{request.shopId}</h3>
-              </div>
-              <p className="text-sm text-muted-foreground">{request.clientName}</p>
-            </div>
+      <Card className="shadow-md hover:shadow-lg transition-shadow duration-200">
+        <div className="flex items-center justify-between p-4 border-b">
+          <div>
+            <h3 className="text-lg font-semibold">{request.clientName}</h3>
+            <p className="text-sm text-muted-foreground">Shop ID: {request.shopId}</p>
+          </div>
+          <div className="flex items-center">
             <Badge variant={getStatusVariant(request.status as OrderRequestStatus)}>{request.status}</Badge>
           </div>
+        </div>
 
-          <div className="grid grid-cols-2 gap-3 mb-3">
+        <CardContent className="p-4 space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
             <div className="flex items-center gap-2">
               <Calendar className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm">{formatDate(request.date)}</span>
+              <span>{formatDate(request.date)}</span>
             </div>
             <div className="flex items-center gap-2">
               <DollarSign className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-medium">{formatCurrency(request.price || 0)}</span>
+              <span>{formatCurrency(request.price || 0)}</span>
             </div>
             <div className="flex items-center gap-2">
               <MapPin className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm">{request.location}</span>
+              <span>{request.location}</span>
             </div>
             <div className="flex items-center gap-2">
               <User className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm">{request.agent}</span>
+              <span>{request.agent}</span>
             </div>
           </div>
 
-          <Button
-            variant="ghost"
-            size="sm"
-            className="w-full flex items-center justify-center gap-1 mt-1"
-            onClick={() => setShowDetails(!showDetails)}
-          >
-            {showDetails ? (
-              <>
-                <ChevronUp className="h-4 w-4" />
-                <span>Hide details</span>
-              </>
-            ) : (
-              <>
-                <ChevronDown className="h-4 w-4" />
-                <span>Show details</span>
-              </>
-            )}
-          </Button>
+          {request.remarks && (
+            <div className="text-sm text-muted-foreground">
+              <strong>Remarks:</strong> {request.remarks}
+            </div>
+          )}
 
-          {showDetails && (
-            <div className="mt-3 pt-3 border-t">
-              <div className="mb-3">
-                <div className="flex items-center gap-2 mb-1">
-                  <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm font-medium">Remarks</span>
-                </div>
-                <div className="bg-muted/30 p-3 rounded text-sm">
-                  {request.remarks ? (
-                    request.remarks
-                  ) : (
-                    <span className="italic text-muted-foreground">No remarks provided</span>
-                  )}
-                </div>
-              </div>
+          <div className="flex flex-wrap gap-2 justify-between">
+            <Button variant="outline" size="sm" className="h-9" onClick={handleShowChat}>
+              <MessageSquare className="h-4 w-4 mr-1" />
+              {showChat ? "Hide Chat" : "Show Chat"}
+              {unreadMessageCount > 0 && (
+                <span className="ml-2 rounded-full bg-red-500 px-2 py-0.5 text-xs text-white">
+                  {unreadMessageCount}
+                </span>
+              )}
+            </Button>
 
-              <div className="flex flex-wrap gap-2 justify-end">
-                {isAdmin && request.status === "Pending" && (
-                  <>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-9"
-                          onClick={() => handleStatusUpdate("Rejected")}
-                          disabled={isUpdating}
-                        >
-                          <XCircle className="h-4 w-4 mr-1" />
-                          Reject
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Reject this request</TooltipContent>
-                    </Tooltip>
-
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="default"
-                          size="sm"
-                          className="h-9"
-                          onClick={() => handleStatusUpdate("Approved")}
-                          disabled={isUpdating}
-                        >
-                          <CheckCircle className="h-4 w-4 mr-1" />
-                          Approve
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Approve this request</TooltipContent>
-                    </Tooltip>
-                  </>
-                )}
-
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="outline" size="sm" className="h-9" onClick={handleCopyInformation}>
-                      <ClipboardCopy className="h-4 w-4 mr-1" />
-                      Copy
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Copy request information</TooltipContent>
-                </Tooltip>
-
-                {isAdmin && (
+            <div className="flex gap-2">
+              {isAdmin && request.status === "Pending" && (
+                <>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button variant="outline" size="sm" className="h-9" onClick={handleDeleteRequest}>
-                        <Trash2 className="h-4 w-4 mr-1" />
-                        Delete
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleStatusUpdate("Rejected")}
+                        disabled={isUpdating}
+                        className="hover:bg-red-100 hover:text-red-500"
+                      >
+                        <XCircle className="h-4 w-4" />
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent>Delete this request</TooltipContent>
+                    <TooltipContent>Reject</TooltipContent>
                   </Tooltip>
-                )}
-              </div>
+
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="default"
+                        size="icon"
+                        onClick={() => handleStatusUpdate("Approved")}
+                        disabled={isUpdating}
+                        className="hover:bg-green-100 hover:text-green-500"
+                      >
+                        <CheckCircle className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Approve</TooltipContent>
+                  </Tooltip>
+                </>
+              )}
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" onClick={handleCopyInformation}>
+                    <ClipboardCopy className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Copy Info</TooltipContent>
+              </Tooltip>
+
+              {isAdmin && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" onClick={handleDeleteRequest}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Delete</TooltipContent>
+                </Tooltip>
+              )}
+            </div>
+          </div>
+
+          {showChat && (
+            <div className="mt-4">
+              <ChatBox orderRequestId={request.id} />
             </div>
           )}
         </CardContent>
