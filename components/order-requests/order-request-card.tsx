@@ -35,6 +35,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import ChatBox from "./chat-box"
+import { cn } from "@/lib/utils"
 
 interface OrderRequestCardProps {
   request: OrderRequest
@@ -128,30 +129,37 @@ ${request.remarks ? `💬 Remarks: ${request.remarks}` : ""}
     let unreadCount = 0
 
     for (const message of messages) {
+      // Check if the message is unread by the current user
       const hasRead = (message.readBy || []).includes(user.uid)
-      if (!hasRead) {
-        if (isAdmin) {
-          unreadCount++
-        } else if (!message.isAdmin) {
-          unreadCount++
-        }
+
+      // Only count messages from other users as unread
+      if (!hasRead && message.userId !== user.uid) {
+        unreadCount++
       }
     }
 
     setUnreadMessageCount(unreadCount)
-  }, [getChatMessages, request.id, user, isAdmin])
+  }, [getChatMessages, request.id, user])
+
+  // Handle messages being read
+  const handleMessagesRead = useCallback(() => {
+    // Reset the unread count when messages are read
+    setUnreadMessageCount(0)
+  }, [])
 
   useEffect(() => {
+    // Check for unread messages when the component mounts
     checkForUnreadMessages()
+
+    // Set up an interval to periodically check for new messages
+    const interval = setInterval(checkForUnreadMessages, 10000) // Check every 10 seconds
+
+    return () => clearInterval(interval)
   }, [checkForUnreadMessages])
 
   // Handle show chat
   const handleShowChat = () => {
     setShowChat(!showChat)
-    // Mark messages as read when chat is opened
-    if (!showChat) {
-      checkForUnreadMessages()
-    }
   }
 
   return (
@@ -194,12 +202,21 @@ ${request.remarks ? `💬 Remarks: ${request.remarks}` : ""}
           )}
 
           <div className="flex flex-wrap gap-2 justify-between">
-            <Button variant="outline" size="sm" className="h-9" onClick={handleShowChat}>
-              <MessageSquare className="h-4 w-4 mr-1" />
+            <Button
+              variant="outline"
+              size="sm"
+              className={cn(
+                "h-9 relative",
+                unreadMessageCount > 0 && "border-blue-400 text-blue-600 dark:border-blue-500 dark:text-blue-400",
+              )}
+              onClick={handleShowChat}
+            >
+              <MessageSquare className={cn("h-4 w-4 mr-1", unreadMessageCount > 0 && "text-blue-500 animate-pulse")} />
               {showChat ? "Hide Chat" : "Show Chat"}
               {unreadMessageCount > 0 && (
-                <span className="ml-2 rounded-full bg-red-500 px-2 py-0.5 text-xs text-white">
-                  {unreadMessageCount}
+                <span className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white ring-2 ring-white dark:ring-gray-900">
+                  {unreadMessageCount > 9 ? "9+" : unreadMessageCount}
+                  <span className="sr-only">{unreadMessageCount} unread messages</span>
                 </span>
               )}
             </Button>
@@ -263,7 +280,7 @@ ${request.remarks ? `💬 Remarks: ${request.remarks}` : ""}
 
           {showChat && (
             <div className="mt-4">
-              <ChatBox orderRequestId={request.id} />
+              <ChatBox orderRequestId={request.id} onMessagesRead={handleMessagesRead} />
             </div>
           )}
         </CardContent>

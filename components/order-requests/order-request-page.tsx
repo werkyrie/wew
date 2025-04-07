@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import OrderRequestForm from "./order-request-form"
 import OrderRequestList from "./order-request-list"
-import { FileText, PlusCircle, HelpCircle } from "lucide-react"
+import { FileText, PlusCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
@@ -20,15 +20,6 @@ export default function OrderRequestPage() {
           Create New Request
         </Button>
       </div>
-
-      <Alert variant="default" className="bg-blue-50 dark:bg-blue-950/20 border-blue-100 dark:border-blue-900">
-        <HelpCircle className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-        <AlertTitle className="text-blue-700 dark:text-blue-300">How to use Order Requests</AlertTitle>
-        <AlertDescription className="text-blue-600 dark:text-blue-400">
-          Order requests allow you to submit orders for approval. Use the <strong>Create New Request</strong> button to
-          submit a new order, or switch between tabs below to view existing requests.
-        </AlertDescription>
-      </Alert>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-2">

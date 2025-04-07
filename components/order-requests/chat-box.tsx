@@ -7,48 +7,175 @@ import { useClientContext } from "@/context/client-context"
 import { useAuth } from "@/context/auth-context"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Loader2, Send, User, ShieldAlert } from "lucide-react"
+import { Loader2, Send, User, ShieldAlert, AlertCircle } from "lucide-react"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import type { ChatMessage } from "@/types/client"
+import { db } from "@/lib/firebase"
+import { collection, query, where, onSnapshot, doc, updateDoc, arrayUnion } from "firebase/firestore"
+import { useToast } from "@/hooks/use-toast"
 
 interface ChatBoxProps {
   orderRequestId: string
+  onMessagesRead?: () => void
 }
 
-export default function ChatBox({ orderRequestId }: ChatBoxProps) {
+export default function ChatBox({ orderRequestId, onMessagesRead }: ChatBoxProps) {
   const { addChatMessage, getChatMessages } = useClientContext()
   const { user, isAdmin } = useAuth()
+  const { toast } = useToast()
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [newMessage, setNewMessage] = useState("")
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
+  const [usingRealtime, setUsingRealtime] = useState(true)
+  const [indexError, setIndexError] = useState(false)
   const scrollAreaRef = useRef<HTMLDivElement>(null)
+  const messagesMarkedAsRead = useRef(false)
 
-  // Load messages
-  const loadMessages = useCallback(async () => {
-    setLoading(true)
-    const chatMessages = await getChatMessages(orderRequestId)
-    setMessages(chatMessages)
-    setLoading(false)
+  // Load messages using regular fetch as fallback
+  const loadMessagesWithFallback = useCallback(async () => {
+    try {
+      setLoading(true)
+      const chatMessages = await getChatMessages(orderRequestId)
+      setMessages(chatMessages)
 
-    // Scroll to bottom after messages load
-    setTimeout(() => {
-      if (scrollAreaRef.current) {
-        scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight
+      // Mark messages as read after loading
+      if (!messagesMarkedAsRead.current) {
+        markMessagesAsRead(chatMessages)
       }
-    }, 100)
-  }, [orderRequestId, getChatMessages])
+    } catch (error) {
+      console.error("Error fetching messages:", error)
+      toast({
+        title: "Error loading messages",
+        description: "Please try refreshing the page",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }, [orderRequestId, getChatMessages, toast])
 
+  // Mark messages as read
+  const markMessagesAsRead = useCallback(
+    async (messagesToMark: ChatMessage[]) => {
+      if (!user) return
+
+      try {
+        // Find messages that haven't been read by the current user
+        const unreadMessages = messagesToMark.filter(
+          (msg) => !(msg.readBy || []).includes(user.uid) && msg.userId !== user.uid,
+        )
+
+        if (unreadMessages.length === 0) return
+
+        // Update each message's readBy array
+        for (const message of unreadMessages) {
+          const messageRef = doc(db, "chatMessages", message.id)
+          await updateDoc(messageRef, {
+            readBy: arrayUnion(user.uid),
+          })
+        }
+
+        // Mark as done to prevent repeated updates
+        messagesMarkedAsRead.current = true
+
+        // Notify parent component that messages were read
+        if (onMessagesRead) {
+          onMessagesRead()
+        }
+
+        console.log(`Marked ${unreadMessages.length} messages as read`)
+      } catch (error) {
+        console.error("Error marking messages as read:", error)
+      }
+    },
+    [user, onMessagesRead],
+  )
+
+  // Set up message fetching - tries real-time first, falls back to regular fetch
   useEffect(() => {
-    loadMessages()
+    setLoading(true)
+    messagesMarkedAsRead.current = false
 
-    // Set up a polling mechanism to refresh messages every 5 seconds
-    // In a production app, you'd use Firebase real-time listeners instead
-    // const interval = setInterval(loadMessages, 5000)
+    // Try to use real-time listener first
+    try {
+      // Create a query for messages related to this order request
+      const messagesQuery = query(collection(db, "chatMessages"), where("orderRequestId", "==", orderRequestId))
 
-    // return () => clearInterval(interval)
-  }, [loadMessages, orderRequestId])
+      // Set up the real-time listener
+      const unsubscribe = onSnapshot(
+        messagesQuery,
+        async (snapshot) => {
+          const messagesData: ChatMessage[] = []
+
+          snapshot.forEach((doc) => {
+            const data = doc.data()
+            messagesData.push({
+              id: doc.id,
+              orderRequestId: data.orderRequestId,
+              userId: data.userId,
+              userName: data.userName,
+              content: data.content,
+              isAdmin: data.isAdmin,
+              timestamp: data.timestamp ? data.timestamp.seconds * 1000 : Date.now(),
+              readBy: data.readBy || [],
+            })
+          })
+
+          // Sort messages by timestamp since we're not using orderBy in the query
+          messagesData.sort((a, b) => a.timestamp - b.timestamp)
+
+          setMessages(messagesData)
+          setLoading(false)
+          setUsingRealtime(true)
+          setIndexError(false)
+
+          // Mark messages as read after loading
+          if (!messagesMarkedAsRead.current) {
+            markMessagesAsRead(messagesData)
+          }
+
+          // Scroll to bottom after messages load
+          setTimeout(() => {
+            if (scrollAreaRef.current) {
+              scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight
+            }
+          }, 100)
+        },
+        (error) => {
+          console.error("Error getting real-time messages:", error)
+
+          // Check if it's an index error
+          if (error.message && error.message.includes("requires an index")) {
+            setIndexError(true)
+            console.log("Index error detected. Falling back to regular fetching.")
+          }
+
+          // Fall back to regular fetch
+          setUsingRealtime(false)
+          loadMessagesWithFallback()
+        },
+      )
+
+      // Clean up the listener when component unmounts
+      return () => unsubscribe()
+    } catch (error) {
+      console.error("Error setting up real-time listener:", error)
+      setUsingRealtime(false)
+      loadMessagesWithFallback()
+    }
+  }, [orderRequestId, loadMessagesWithFallback, markMessagesAsRead])
+
+  // Set up polling if not using real-time updates
+  useEffect(() => {
+    if (!usingRealtime) {
+      // Poll for new messages every 5 seconds
+      const interval = setInterval(loadMessagesWithFallback, 5000)
+      return () => clearInterval(interval)
+    }
+  }, [usingRealtime, loadMessagesWithFallback])
 
   // Scroll to bottom when new messages are added
   useEffect(() => {
@@ -75,11 +202,17 @@ export default function ChatBox({ orderRequestId }: ChatBoxProps) {
 
       setNewMessage("")
 
-      // Refresh messages
-      const updatedMessages = await getChatMessages(orderRequestId)
-      setMessages(updatedMessages)
+      // If not using real-time, manually refresh messages
+      if (!usingRealtime) {
+        await loadMessagesWithFallback()
+      }
     } catch (error) {
       console.error("Error sending message:", error)
+      toast({
+        title: "Error sending message",
+        description: "Please try again",
+        variant: "destructive",
+      })
     } finally {
       setSending(false)
     }
@@ -111,12 +244,29 @@ export default function ChatBox({ orderRequestId }: ChatBoxProps) {
 
   return (
     <div className="border rounded-md overflow-hidden bg-background">
-      <div className="p-3 border-b bg-muted/30 flex items-center">
-        <h3 className="font-medium">Chat</h3>
-        <span className="text-xs text-muted-foreground ml-2">
-          {messages.length} {messages.length === 1 ? "message" : "messages"}
-        </span>
+      <div className="p-3 border-b bg-muted/30 flex items-center justify-between">
+        <div className="flex items-center">
+          <h3 className="font-medium">Chat</h3>
+          <span className="text-xs text-muted-foreground ml-2">
+            {messages.length} {messages.length === 1 ? "message" : "messages"}
+          </span>
+        </div>
+        {!usingRealtime && (
+          <div className="flex items-center text-xs text-amber-600 dark:text-amber-400">
+            <AlertCircle className="h-3 w-3 mr-1" />
+            <span>Auto-refresh every 5s</span>
+          </div>
+        )}
       </div>
+
+      {indexError && (
+        <Alert variant="warning" className="m-3 py-2">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription className="text-xs">
+            For real-time chat, an admin needs to create a Firestore index. Using auto-refresh for now.
+          </AlertDescription>
+        </Alert>
+      )}
 
       <ScrollArea className="h-[300px] p-3" ref={scrollAreaRef}>
         {messages.length === 0 ? (
