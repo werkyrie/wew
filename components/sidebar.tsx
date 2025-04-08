@@ -224,7 +224,7 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
         },
         {
           id: "videocall",
-          label: "Videocall Template",
+          label: "Video Call Template",
           icon: <Video className="h-6 w-6" />,
         },
       ],
@@ -318,7 +318,7 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
           },
           {
             icon: Video,
-            label: "Videocall Template",
+            label: "Video Call Template",
             tab: "videocall",
             onClick: () => handleTabChange("videocall"),
           },
