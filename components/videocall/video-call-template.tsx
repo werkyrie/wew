@@ -295,14 +295,14 @@ export default function VideoCallTemplate() {
 
       // Topics Section - using compact layout
       const topicsData = [
-        { label: "What are you doing before the Call?:", value: truncateText(formData.beforeCall, 40) },
-        { label: "What will you do after the Call?:", value: truncateText(formData.afterCall, 40) },
-        { label: "Where is your child right now?:", value: truncateText(formData.kidLocation, 40) },
+        { label: "Before the Call?:", value: truncateText(formData.beforeCall, 40) },
+        { label: "After the Call?:", value: truncateText(formData.afterCall, 40) },
+        { label: "Where is your child?:", value: truncateText(formData.kidLocation, 40) },
       ]
 
       // Add remarks if provided
       if (formData.remarks.trim() !== "") {
-        topicsData.push({ label: "Additional Topics:", value: truncateText(formData.remarks, 40) })
+        topicsData.push({ label: "Additional:", value: truncateText(formData.remarks, 40) })
       }
 
       yPosition = addCompactSection(doc, "TOPICS TO DISCUSS", topicsData, yPosition, margin, contentWidth)
@@ -335,7 +335,7 @@ export default function VideoCallTemplate() {
     doc.setFillColor(0, 0, 0)
     doc.roundedRect(margin, y, contentWidth, 8, 1, 1, "F")
     doc.setTextColor(255, 255, 255)
-    doc.setFontSize(10) // Smaller font size
+    doc.setFontSize(13) // Smaller font size
     doc.setFont("helvetica", "bold")
     doc.text(title, margin + 5, y + 5.5)
     y += 10 // Reduced spacing
