@@ -85,4 +85,3 @@ async function migrateToFirebase() {
 }
 
 export default migrateToFirebase
-

@@ -606,4 +606,3 @@ export default function BulkDepositModal({ isOpen, onClose }: BulkDepositModalPr
     </Dialog>
   )
 }
-

@@ -131,4 +131,3 @@ function OptimizedDashboard() {
 
 // Export as memoized component to prevent unnecessary re-renders
 export default OptimizedDashboard
-

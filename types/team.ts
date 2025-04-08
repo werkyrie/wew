@@ -52,4 +52,3 @@ export interface TeamMetrics {
   totalOpenAccounts: number
   totalDeposits: number
 }
-

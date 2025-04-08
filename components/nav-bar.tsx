@@ -220,4 +220,3 @@ function NavButton({ icon, label, active, onClick }: NavButtonProps) {
     </Button>
   )
 }
-

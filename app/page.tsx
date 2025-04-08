@@ -15,6 +15,8 @@ import Sidebar from "@/components/sidebar"
 import NavBar from "@/components/nav-bar"
 import { useAuth } from "@/context/auth-context"
 import ReportsPage from "@/components/reports/reports-page"
+import InventoryPage from "@/components/inventory/inventory-page"
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
 
 export default function Home() {
   const searchParams = useSearchParams()
@@ -99,12 +101,25 @@ export default function Home() {
             <ReportsPage />
           </TabsContent>
 
+          <TabsContent value="inventory" className="mt-0">
+            <InventoryPage />
+          </TabsContent>
+
           <TabsContent value="settings" className="mt-0">
             <SettingsPanel />
+          </TabsContent>
+
+          <TabsContent value="videocall" className="mt-0">
+            <Card>
+              <CardHeader>
+                <CardTitle>Videocall Template</CardTitle>
+                <CardDescription>Coming Soon</CardDescription>
+              </CardHeader>
+              <CardContent>This feature is under development and will be available in a future update.</CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </main>
     </div>
   )
 }
-

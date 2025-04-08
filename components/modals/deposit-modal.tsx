@@ -225,4 +225,3 @@ export default function DepositModal({ mode, deposit, isOpen, onClose }: Deposit
     </Dialog>
   )
 }
-

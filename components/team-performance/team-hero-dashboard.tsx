@@ -114,4 +114,3 @@ function MetricCard({ title, value, icon, trend, className, bgColor, iconBgColor
     </Card>
   )
 }
-

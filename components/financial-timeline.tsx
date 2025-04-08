@@ -320,4 +320,3 @@ export function FinancialTimeline({ shopId }: FinancialTimelineProps) {
     </div>
   )
 }
-

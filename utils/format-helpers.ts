@@ -60,4 +60,3 @@ export const formatDateTime = (date: string | Date): string => {
     minute: "2-digit",
   })
 }
-

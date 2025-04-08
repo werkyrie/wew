@@ -29,6 +29,7 @@ import {
   LineChart,
   Cog,
   LayoutDashboard,
+  Video,
 } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
@@ -221,6 +222,11 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
           label: "Dashboard",
           icon: <Home className="h-6 w-6" />,
         },
+        {
+          id: "videocall",
+          label: "Videocall Template",
+          icon: <Video className="h-6 w-6" />,
+        },
       ],
     },
     {
@@ -278,6 +284,11 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
           label: "Reports",
           icon: <FileText className="h-6 w-6" />,
         },
+        {
+          id: "inventory",
+          label: "Inventory",
+          icon: <Database className="h-6 w-6" />,
+        },
       ],
     },
     {
@@ -304,6 +315,12 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
             label: "Dashboard",
             tab: "dashboard",
             onClick: () => handleTabChange("dashboard"),
+          },
+          {
+            icon: Video,
+            label: "Videocall Template",
+            tab: "videocall",
+            onClick: () => handleTabChange("videocall"),
           },
         ],
       },
@@ -367,6 +384,12 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
             label: "Reports",
             tab: "reports",
             onClick: () => handleTabChange("reports"),
+          },
+          {
+            icon: Database,
+            label: "Inventory",
+            tab: "inventory",
+            onClick: () => handleTabChange("inventory"),
           },
         ],
       },
@@ -718,4 +741,3 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
     </TooltipProvider>
   )
 }
-

@@ -43,4 +43,3 @@ async function migrateData() {
 
 // Run the migration
 migrateData()
-

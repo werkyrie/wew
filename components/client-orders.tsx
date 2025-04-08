@@ -117,4 +117,3 @@ export function ClientOrders({ shopId }: ClientOrdersProps) {
     </Card>
   )
 }
-

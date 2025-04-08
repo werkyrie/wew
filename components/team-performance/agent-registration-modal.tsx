@@ -234,4 +234,3 @@ export default function AgentRegistrationModal({ isOpen, onClose }: AgentRegistr
     </Dialog>
   )
 }
-

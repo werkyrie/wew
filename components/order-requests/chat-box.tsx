@@ -346,4 +346,3 @@ export default function ChatBox({ orderRequestId, onMessagesRead }: ChatBoxProps
     </div>
   )
 }
-

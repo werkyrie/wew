@@ -123,4 +123,3 @@ export interface ClientContextType {
   addChatMessage: (message: Omit<ChatMessage, "id" | "timestamp">) => Promise<void>
   getChatMessages: (orderRequestId: string) => Promise<ChatMessage[]>
 }
-

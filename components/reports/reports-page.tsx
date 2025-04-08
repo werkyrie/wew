@@ -620,70 +620,49 @@ export default function ReportsPage() {
                     )}
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-muted-foreground">
+                  Selecting an agent will auto-populate the statistics below
+                </p>
               </div>
 
               <div className="space-y-2">
                 <label htmlFor="addedToday" className="text-sm font-medium">
                   Added Today <span className="text-red-500">*</span>
                 </label>
-                <Input
-                  id="addedToday"
-                  placeholder="Number of clients added today"
-                  value={addedToday}
-                  onChange={(e) => {
-                    setAddedToday(Number(e.target.value))
-                    saveReportData()
-                  }}
-                  type="number"
-                />
+                <div className="flex items-center gap-2 h-10 px-3 py-2 rounded-md border border-input bg-muted text-muted-foreground">
+                  {addedToday}
+                  <span className="text-xs text-muted-foreground ml-auto">Auto-generated</span>
+                </div>
               </div>
 
               <div className="space-y-2">
                 <label htmlFor="monthlyAdded" className="text-sm font-medium">
                   Monthly Added <span className="text-red-500">*</span>
                 </label>
-                <Input
-                  id="monthlyAdded"
-                  placeholder="Number of clients added this month"
-                  value={monthlyAdded}
-                  onChange={(e) => {
-                    setMonthlyAdded(Number(e.target.value))
-                    saveReportData()
-                  }}
-                  type="number"
-                />
+                <div className="flex items-center gap-2 h-10 px-3 py-2 rounded-md border border-input bg-muted text-muted-foreground">
+                  {monthlyAdded}
+                  <span className="text-xs text-muted-foreground ml-auto">Auto-generated</span>
+                </div>
               </div>
 
               <div className="space-y-2">
                 <label htmlFor="openShops" className="text-sm font-medium">
                   Open Shops <span className="text-red-500">*</span>
                 </label>
-                <Input
-                  id="openShops"
-                  placeholder="Number of open shops"
-                  value={openShops}
-                  onChange={(e) => {
-                    setOpenShops(Number(e.target.value))
-                    saveReportData()
-                  }}
-                  type="number"
-                />
+                <div className="flex items-center gap-2 h-10 px-3 py-2 rounded-md border border-input bg-muted text-muted-foreground">
+                  {openShops}
+                  <span className="text-xs text-muted-foreground ml-auto">Auto-generated</span>
+                </div>
               </div>
 
               <div className="space-y-2 md:col-span-2">
                 <label htmlFor="deposits" className="text-sm font-medium">
                   Deposits <span className="text-red-500">*</span>
                 </label>
-                <Input
-                  id="deposits"
-                  placeholder="Total deposits amount"
-                  value={agentDeposits}
-                  onChange={(e) => {
-                    setAgentDeposits(Number(e.target.value))
-                    saveReportData()
-                  }}
-                  type="number"
-                />
+                <div className="flex items-center gap-2 h-10 px-3 py-2 rounded-md border border-input bg-muted text-muted-foreground">
+                  {agentDeposits}
+                  <span className="text-xs text-muted-foreground ml-auto">Auto-generated</span>
+                </div>
               </div>
             </div>
           </CardContent>
@@ -997,4 +976,3 @@ export default function ReportsPage() {
     </div>
   )
 }
-

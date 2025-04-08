@@ -83,4 +83,3 @@ export default function BulkDeleteModal({ isOpen, onClose, selectedClients }: Bu
     </Dialog>
   )
 }
-

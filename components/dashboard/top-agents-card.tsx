@@ -226,4 +226,3 @@ function TopAgentsCard() {
 
 // Export as memoized component
 export default memo(TopAgentsCard)
-

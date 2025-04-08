@@ -1467,4 +1467,3 @@ export default function ClientModal({ mode, client, isOpen, onClose }: ClientMod
     </Dialog>
   )
 }
-

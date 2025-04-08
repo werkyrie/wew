@@ -8,4 +8,3 @@ export default function FirebaseTestPage() {
     </div>
   )
 }
-

@@ -139,4 +139,3 @@ export default function DataResetModal({ isOpen, onClose, onReset }: DataResetMo
     </Dialog>
   )
 }
-

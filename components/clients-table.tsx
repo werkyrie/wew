@@ -724,4 +724,3 @@ export default function ClientsTable({ viewOnly = false }) {
     </div>
   )
 }
-

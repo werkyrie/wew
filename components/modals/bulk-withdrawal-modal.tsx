@@ -610,4 +610,3 @@ export default function BulkWithdrawalModal({ isOpen, onClose }: BulkWithdrawalM
     </Dialog>
   )
 }
-

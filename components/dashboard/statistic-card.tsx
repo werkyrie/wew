@@ -49,4 +49,3 @@ const StatisticCard = memo(function StatisticCard({
 })
 
 export default StatisticCard
-

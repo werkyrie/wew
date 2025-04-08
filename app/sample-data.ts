@@ -100,4 +100,3 @@ export const sampleWithdrawals: Withdrawal[] = [
     paymentMode: "Ewallet",
   },
 ]
-
