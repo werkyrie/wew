@@ -73,9 +73,16 @@ export default function OrderRequestCard({ request }: OrderRequestCardProps) {
     setTimeout(() => {
       updateOrderRequestStatus(request.id, status)
 
+      let description = `Order request has been ${status.toLowerCase()}.`
+      if (status === "Approved") {
+        description = "Order request has been marked as approved."
+      } else if (status === "Rejected") {
+        description = "Order request has been rejected."
+      }
+
       toast({
         title: `Request ${status}`,
-        description: `Order request has been ${status.toLowerCase()}.`,
+        description: description,
         variant: status === "Approved" ? "success" : status === "Rejected" ? "destructive" : "default",
       })
 
@@ -179,7 +186,10 @@ ${request.remarks ? `💬 Remarks: ${request.remarks}` : ""}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
             <div className="flex items-center gap-2">
               <Calendar className="h-4 w-4 text-muted-foreground" />
-              <span>{formatDate(request.date)}</span>
+              <span>
+                {formatDate(request.date)}{" "}
+                {request.date && new Date(request.date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+              </span>
             </div>
             <div className="flex items-center gap-2">
               <DollarSign className="h-4 w-4 text-muted-foreground" />

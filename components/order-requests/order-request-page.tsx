@@ -6,7 +6,6 @@ import OrderRequestForm from "./order-request-form"
 import OrderRequestList from "./order-request-list"
 import { FileText, PlusCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 export default function OrderRequestPage() {
   const [activeTab, setActiveTab] = useState("list")
@@ -38,13 +37,6 @@ export default function OrderRequestPage() {
         </TabsContent>
 
         <TabsContent value="new" className="mt-6">
-          <Alert className="mb-6 bg-green-50 dark:bg-green-950/20 border-green-100 dark:border-green-900">
-            <PlusCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
-            <AlertTitle className="text-green-700 dark:text-green-300">Create a New Order Request</AlertTitle>
-            <AlertDescription className="text-green-600 dark:text-green-400">
-              Fill out the form below to submit a new order request. All requests will be reviewed by an administrator.
-            </AlertDescription>
-          </Alert>
           <OrderRequestForm />
         </TabsContent>
       </Tabs>

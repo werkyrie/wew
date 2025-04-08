@@ -854,24 +854,7 @@ export function ClientProvider({ children }: { children: ReactNode }) {
         updatedAt: serverTimestamp(),
       })
 
-      // If status is approved, create a new order
-      if (status === "Approved") {
-        const requestSnapshot = await getDocs(query(collection(db, "orderRequests"), where("__name__", "==", id)))
-        if (!requestSnapshot.empty) {
-          const requestData = requestSnapshot.docs[0].data()
-          const newOrder: Order = {
-            orderId: generateOrderId(),
-            shopId: requestData.shopId,
-            clientName: requestData.clientName,
-            agent: requestData.agent,
-            date: requestData.date ? new Date(requestData.date.seconds * 1000) : new Date(),
-            location: requestData.location,
-            price: requestData.price,
-            status: "Pending", // Start as pending
-          }
-          await addOrder(newOrder)
-        }
-      }
+      // No longer automatically creating orders when approved
     } catch (error) {
       console.error("Error updating order request status:", error)
     }

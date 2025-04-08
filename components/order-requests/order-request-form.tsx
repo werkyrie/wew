@@ -11,12 +11,33 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { AlertCircle, CalendarIcon, Search, User, Building, MapPin, DollarSign, MessageSquare } from "lucide-react"
+import {
+  AlertCircle,
+  CalendarIcon,
+  Search,
+  User,
+  Building,
+  MapPin,
+  DollarSign,
+  MessageSquare,
+  Plus,
+  Trash,
+  Clock,
+} from "lucide-react"
 import { format } from "date-fns"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
+
+// Define the order item type
+interface OrderItem {
+  id: number
+  location: string
+  price: string | number
+  time: string
+  remarks: string
+}
 
 export default function OrderRequestForm() {
   const { clients, addOrderRequest } = useClientContext()
@@ -28,9 +49,17 @@ export default function OrderRequestForm() {
   const [clientName, setClientName] = useState("")
   const [agent, setAgent] = useState("")
   const [date, setDate] = useState<Date | undefined>(new Date())
-  const [location, setLocation] = useState("")
-  const [price, setPrice] = useState<number | string>("") // Change to string or number
-  const [remarks, setRemarks] = useState("")
+
+  // Multiple order items state - each with its own time
+  const [orderItems, setOrderItems] = useState<OrderItem[]>([
+    {
+      id: Date.now(),
+      location: "",
+      price: "",
+      time: format(new Date(), "HH:mm"),
+      remarks: "",
+    },
+  ])
 
   // Search and filter state
   const [searchTerm, setSearchTerm] = useState("")
@@ -39,8 +68,8 @@ export default function OrderRequestForm() {
 
   // Validation state
   const [shopIdError, setShopIdError] = useState("")
-  const [locationError, setLocationError] = useState("")
-  const [priceError, setPriceError] = useState("")
+  const [locationErrors, setLocationErrors] = useState<{ [key: number]: string }>({})
+  const [priceErrors, setPriceErrors] = useState<{ [key: number]: string }>({})
 
   // Update filtered clients when clients or search term changes
   useEffect(() => {
@@ -98,28 +127,30 @@ export default function OrderRequestForm() {
     return true
   }
 
-  // Validate location
-  const validateLocation = () => {
-    if (!location) {
-      setLocationError("Location is required")
-      return false
-    }
+  // Validate all order items
+  const validateOrderItems = () => {
+    const newLocationErrors: { [key: number]: string } = {}
+    const newPriceErrors: { [key: number]: string } = {}
+    let isValid = true
 
-    setLocationError("")
-    return true
-  }
+    orderItems.forEach((item) => {
+      // Validate location
+      if (!item.location) {
+        newLocationErrors[item.id] = "Location is required"
+        isValid = false
+      }
 
-  // Validate price
-  const validatePrice = () => {
-    const numericPrice = typeof price === "string" ? Number.parseFloat(price) : price
+      // Validate price
+      const numericPrice = typeof item.price === "string" ? Number.parseFloat(item.price) : item.price
+      if (!item.price || isNaN(numericPrice) || numericPrice <= 0) {
+        newPriceErrors[item.id] = "Price must be greater than 0"
+        isValid = false
+      }
+    })
 
-    if (!price || isNaN(numericPrice) || numericPrice <= 0) {
-      setPriceError("Price must be greater than 0")
-      return false
-    }
-
-    setPriceError("")
-    return true
+    setLocationErrors(newLocationErrors)
+    setPriceErrors(newPriceErrors)
+    return isValid
   }
 
   // Handle form submission
@@ -128,32 +159,49 @@ export default function OrderRequestForm() {
 
     // Validate form
     const isShopIdValid = validateShopId()
-    const isLocationValid = validateLocation()
-    const isPriceValid = validatePrice()
+    const areOrderItemsValid = validateOrderItems()
 
-    if (!isShopIdValid || !isLocationValid || !isPriceValid) {
+    if (!isShopIdValid || !areOrderItemsValid) {
       return
     }
 
-    // Convert price to number for submission
-    const numericPrice = typeof price === "string" ? Number.parseFloat(price) : price
+    // Submit each order item
+    for (const item of orderItems) {
+      // Convert price to number for submission
+      const numericPrice = typeof item.price === "string" ? Number.parseFloat(item.price) : item.price
 
-    // Create order request
-    addOrderRequest({
-      shopId,
-      clientName,
-      agent,
-      date: date ? format(date, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
-      location,
-      price: numericPrice,
-      remarks,
-    })
+      // Combine the selected date with the item's time
+      let orderDateTime = new Date()
+      if (date) {
+        orderDateTime = new Date(date)
+        const [hours, minutes] = item.time.split(":").map(Number)
+        orderDateTime.setHours(hours)
+        orderDateTime.setMinutes(minutes)
+      }
+
+      // Create order request
+      addOrderRequest({
+        shopId,
+        clientName,
+        agent,
+        date: format(orderDateTime, "yyyy-MM-dd HH:mm"),
+        location: item.location,
+        price: numericPrice,
+        remarks: item.remarks,
+      })
+    }
 
     // Create notification for administrators
+    const totalOrders = orderItems.length
+    const totalAmount = orderItems.reduce((sum, item) => {
+      const price = typeof item.price === "string" ? Number.parseFloat(item.price) : item.price
+      return sum + (isNaN(price) ? 0 : price)
+    }, 0)
+
     addNotification({
       type: "info",
       title: "New Order Request",
-      message: `${clientName} (${shopId}) has submitted a new order request for ${location} worth $${numericPrice.toFixed(2)}`,
+      message: `${clientName} (${shopId}) has submitted ${totalOrders} order(s) worth a total of ${totalAmount.toFixed(2)} on ${date ? format(date, "PPP") : format(new Date(), "PPP")}`,
       link: "/order-requests",
     })
 
@@ -162,29 +210,47 @@ export default function OrderRequestForm() {
     setClientName("")
     setAgent("")
     setDate(new Date())
-    setLocation("")
-    setPrice("")
-    setRemarks("")
+    setOrderItems([{ id: Date.now(), location: "", price: "", time: format(new Date(), "HH:mm"), remarks: "" }])
     setSearchTerm("")
+    setLocationErrors({})
+    setPriceErrors({})
 
     // Show success toast
     toast({
       title: "Order Request Submitted",
-      description: "Your order request has been submitted successfully.",
+      description: `${totalOrders} order(s) have been submitted successfully.`,
       variant: "success",
     })
   }
 
-  // Get status badge color
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "Active":
-        return "bg-green-500"
-      case "Inactive":
-        return "bg-gray-500"
-      default:
-        return "bg-blue-500"
-    }
+  // Add a new order item
+  const addOrderItem = () => {
+    setOrderItems([
+      ...orderItems,
+      {
+        id: Date.now(),
+        location: "",
+        price: "",
+        time: format(new Date(), "HH:mm"),
+        remarks: "",
+      },
+    ])
+  }
+
+  // Remove an order item
+  const removeOrderItem = (id: number) => {
+    setOrderItems(orderItems.filter((item) => item.id !== id))
+  }
+
+  // Update an order item field
+  const updateOrderItem = (id: number, field: keyof OrderItem, value: string | number) => {
+    const newItems = orderItems.map((item) => {
+      if (item.id === id) {
+        return { ...item, [field]: value }
+      }
+      return item
+    })
+    setOrderItems(newItems)
   }
 
   return (
@@ -249,7 +315,7 @@ export default function OrderRequestForm() {
             )}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="clientName" className="flex items-center gap-1">
                 <User className="h-4 w-4" /> Client Name
@@ -263,12 +329,10 @@ export default function OrderRequestForm() {
               </Label>
               <Input id="agent" value={agent} readOnly className="bg-muted/50" />
             </div>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="date" className="flex items-center gap-1">
-                <CalendarIcon className="h-4 w-4" /> Date
+                <CalendarIcon className="h-4 w-4" /> Date (shared for all orders)
               </Label>
               <Popover>
                 <PopoverTrigger asChild>
@@ -280,89 +344,126 @@ export default function OrderRequestForm() {
                     {date ? format(date, "PPP") : <span>Pick a date</span>}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
+                <PopoverContent className="w-auto p-0" align="start">
                   <Calendar mode="single" selected={date} onSelect={setDate} initialFocus />
                 </PopoverContent>
               </Popover>
             </div>
+          </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="location" className="flex items-center gap-1">
-                <MapPin className="h-4 w-4" /> Location
-              </Label>
-              <Input
-                id="location"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                placeholder="Enter location"
-                className={locationError ? "border-red-500" : ""}
-              />
-              {locationError && (
-                <div className="text-sm text-red-500 flex items-center">
-                  <AlertCircle className="h-3 w-3 mr-1" />
-                  {locationError}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-medium">Order Items</h3>
+              <Button type="button" variant="outline" size="sm" onClick={addOrderItem}>
+                <Plus className="h-4 w-4 mr-1" /> Add Order
+              </Button>
+            </div>
+
+            {orderItems.map((item, index) => (
+              <Card key={item.id} className="overflow-hidden border">
+                <div className="bg-muted p-3 flex justify-between items-center">
+                  <h4 className="font-medium">Order Item {index + 1}</h4>
+                  {orderItems.length > 1 && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeOrderItem(item.id)}
+                      className="h-8 w-8 p-0"
+                    >
+                      <Trash className="h-4 w-4 text-red-500" />
+                      <span className="sr-only">Remove item</span>
+                    </Button>
+                  )}
                 </div>
-              )}
-            </div>
+                <CardContent className="p-4 space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor={`location-${item.id}`} className="flex items-center gap-1">
+                        <MapPin className="h-4 w-4" /> Location
+                      </Label>
+                      <Input
+                        id={`location-${item.id}`}
+                        value={item.location}
+                        onChange={(e) => updateOrderItem(item.id, "location", e.target.value)}
+                        placeholder="Enter location"
+                        className={locationErrors[item.id] ? "border-red-500" : ""}
+                      />
+                      {locationErrors[item.id] && (
+                        <div className="text-sm text-red-500 flex items-center">
+                          <AlertCircle className="h-3 w-3 mr-1" />
+                          {locationErrors[item.id]}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor={`time-${item.id}`} className="flex items-center gap-1">
+                        <Clock className="h-4 w-4" /> Time
+                      </Label>
+                      <Input
+                        id={`time-${item.id}`}
+                        type="time"
+                        value={item.time}
+                        onChange={(e) => updateOrderItem(item.id, "time", e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor={`price-${item.id}`} className="flex items-center gap-1">
+                        <DollarSign className="h-4 w-4" /> Price
+                      </Label>
+                      <Input
+                        id={`price-${item.id}`}
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={item.price}
+                        onChange={(e) => {
+                          const value = e.target.value
+                          if (value === "") {
+                            updateOrderItem(item.id, "price", "")
+                          } else {
+                            updateOrderItem(item.id, "price", Number.parseFloat(value))
+                          }
+                        }}
+                        placeholder="Enter price"
+                        className={priceErrors[item.id] ? "border-red-500" : ""}
+                      />
+                      {priceErrors[item.id] && (
+                        <div className="text-sm text-red-500 flex items-center">
+                          <AlertCircle className="h-3 w-3 mr-1" />
+                          {priceErrors[item.id]}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor={`remarks-${item.id}`} className="flex items-center gap-1">
+                        <MessageSquare className="h-4 w-4" /> Remarks
+                      </Label>
+                      <Textarea
+                        id={`remarks-${item.id}`}
+                        value={item.remarks}
+                        onChange={(e) => updateOrderItem(item.id, "remarks", e.target.value)}
+                        placeholder="Enter any additional comments"
+                        rows={2}
+                        className="resize-none"
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="price" className="flex items-center gap-1">
-                <DollarSign className="h-4 w-4" /> Price
-              </Label>
-              <Input
-                id="price"
-                type="number"
-                min="0"
-                step="0.01"
-                value={price}
-                onChange={(e) => {
-                  // Remove leading zeros and convert to number or empty string
-                  const value = e.target.value
-                  if (value === "") {
-                    setPrice("")
-                  } else {
-                    // Parse as float to remove leading zeros
-                    setPrice(Number.parseFloat(value))
-                  }
-                }}
-                placeholder="Enter price"
-                className={priceError ? "border-red-500" : ""}
-              />
-              {priceError && (
-                <div className="text-sm text-red-500 flex items-center">
-                  <AlertCircle className="h-3 w-3 mr-1" />
-                  {priceError}
-                </div>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="status" className="flex items-center gap-1">
-                Status
-              </Label>
-              <Input id="status" value="Pending" readOnly className="bg-yellow-50 dark:bg-yellow-900/20" />
-              <p className="text-xs text-muted-foreground">Status will be set to Pending until approved by admin</p>
-            </div>
+          <div className="pt-2">
+            <Button type="submit" className="w-full">
+              Submit Order Request{orderItems.length > 1 ? "s" : ""}
+            </Button>
           </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="remarks" className="flex items-center gap-1">
-              <MessageSquare className="h-4 w-4" /> Remarks
-            </Label>
-            <Textarea
-              id="remarks"
-              value={remarks}
-              onChange={(e) => setRemarks(e.target.value)}
-              placeholder="Enter any additional comments or special requirements"
-              rows={3}
-            />
-          </div>
-
-          <Button type="submit" className="w-full">
-            Submit Order Request
-          </Button>
         </form>
       </CardContent>
     </Card>

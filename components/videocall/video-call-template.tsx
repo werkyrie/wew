@@ -1,5 +1,7 @@
 "use client"
 
+import { DialogFooter } from "@/components/ui/dialog"
+
 import type React from "react"
 
 import { useState, useEffect, useRef } from "react"
@@ -10,14 +12,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Progress } from "@/components/ui/progress"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import {
@@ -221,10 +216,11 @@ export default function VideoCallTemplate() {
     return text.length > maxLength ? text.substring(0, maxLength) + "..." : text
   }
 
+  // Replace the generatePDF function with this vertical layout version
   const generatePDF = () => {
     try {
       const doc = new jsPDF({
-        orientation: "portrait",
+        orientation: "portrait", // Change to portrait for vertical layout
         unit: "mm",
         format: "a4",
       })
@@ -233,79 +229,220 @@ export default function VideoCallTemplate() {
       doc.setFillColor(255, 255, 255)
       doc.rect(0, 0, doc.internal.pageSize.width, doc.internal.pageSize.height, "F")
 
-      // Reduce margins to fit more content
+      // Page dimensions
       const pageWidth = doc.internal.pageSize.width
-      const margin = 10 // Reduced from 20
+      const pageHeight = doc.internal.pageSize.height
+      const margin = 10
       const contentWidth = pageWidth - margin * 2
 
       // Start position
-      let yPosition = 10 // Reduced from 15
+      let yPosition = 10
 
-      // Compact model details by selecting only the most important fields
-      const modelDetails = [
-        { label: "Purpose:", value: truncateText(formData.purpose, 30) },
-        { label: "Name/Age:", value: truncateText(formData.fullName, 30) },
-        { label: "Location:", value: truncateText(formData.location, 30) },
-        { label: "Work:", value: truncateText(formData.work, 30) },
-        { label: "Kids:", value: truncateText(formData.kids, 30) },
-        { label: "Weather:", value: truncateText(formData.weather, 30) },
-        { label: "Parents:", value: truncateText(formData.parents, 30) },
-        { label: "Plans:", value: truncateText(formData.plans, 30) },
+      // Title
+      doc.setFontSize(16)
+      doc.setFont("helvetica", "bold")
+      doc.setTextColor(0, 0, 0)
+      doc.text("VIDEO CALL INFORMATION", pageWidth / 2, yPosition, { align: "center" })
+      yPosition += 10
+
+      // Section 1: Model Details
+      doc.setFillColor(50, 50, 50)
+      doc.roundedRect(margin, yPosition, contentWidth, 8, 1, 1, "F")
+      doc.setTextColor(255, 255, 255)
+      doc.setFontSize(12)
+      doc.setFont("helvetica", "bold")
+      doc.text("MODEL DETAILS", margin + 5, yPosition + 5.5)
+      yPosition += 10
+
+      // Model details content background
+      doc.setFillColor(245, 245, 245)
+      doc.roundedRect(margin, yPosition, contentWidth, 70, 1, 1, "F")
+
+      // Model details content
+      let contentY = yPosition + 5
+      doc.setTextColor(0, 0, 0)
+      doc.setFontSize(9)
+
+      // Create two columns for model details to save space
+      const colWidth = contentWidth / 2
+      const leftColX = margin + 5
+      const rightColX = margin + colWidth + 5
+
+      // Key model details - left column
+      const leftColFields = [
+        { label: "Purpose:", value: formData.purpose || "N/A" },
+        { label: "Name/Age:", value: formData.fullName || "N/A" },
+        { label: "Location:", value: formData.location || "N/A" },
+        { label: "Work:", value: formData.work || "N/A" },
+        { label: "Kids:", value: formData.kids || "N/A" },
+        { label: "Weather:", value: formData.weather || "N/A" },
       ]
 
-      // Only add optional fields if they have content
-      if (formData.previousLocation) {
-        modelDetails.push({ label: "Prev. Location:", value: truncateText(formData.previousLocation, 30) })
-      }
-      if (formData.divorce) {
-        modelDetails.push({ label: "Relationship:", value: truncateText(formData.divorce, 30) })
-      }
-      if (formData.pet) {
-        modelDetails.push({ label: "Pet:", value: truncateText(formData.pet, 30) })
-      }
-      if (formData.ethnicity) {
-        modelDetails.push({ label: "Ethnicity:", value: truncateText(formData.ethnicity, 30) })
-      }
-      if (formData.car) {
-        modelDetails.push({ label: "Vehicle:", value: truncateText(formData.car, 30) })
-      }
-
-      // Model Details Section - using compact layout
-      yPosition = addCompactSection(doc, "MODEL DETAILS", modelDetails, yPosition, margin, contentWidth)
-
-      // Client Details Section - using compact layout
-      const clientDetails = [
-        { label: "Name/Age:", value: truncateText(formData.clientName, 30) },
-        { label: "Location:", value: truncateText(formData.clientLocation, 30) },
-        { label: "Work:", value: truncateText(formData.clientWork, 30) },
-        { label: "Nickname:", value: truncateText(formData.clientnickname, 30) },
-        { label: "Weekend:", value: truncateText(formData.clientweekend, 30) },
-        { label: "Weather:", value: truncateText(formData.clientweather, 30) },
+      // Key model details - right column
+      const rightColFields = [
+        { label: "Parents:", value: formData.parents || "N/A" },
+        { label: "Plans:", value: formData.plans || "N/A" },
       ]
 
-      // Only add optional fields if they have content
-      if (formData.hobbies) {
-        clientDetails.push({ label: "Hobbies:", value: truncateText(formData.hobbies, 30) })
-      }
-      if (formData.clientkid) {
-        clientDetails.push({ label: "Kids:", value: truncateText(formData.clientkid, 30) })
-      }
+      // Add optional fields if they have content
+      if (formData.previousLocation) rightColFields.push({ label: "Prev. Location:", value: formData.previousLocation })
+      if (formData.divorce) rightColFields.push({ label: "Relationship:", value: formData.divorce })
+      if (formData.pet) rightColFields.push({ label: "Pet:", value: formData.pet })
+      if (formData.ethnicity) rightColFields.push({ label: "Ethnicity:", value: formData.ethnicity })
+      if (formData.car) rightColFields.push({ label: "Vehicle:", value: formData.car })
 
-      yPosition = addCompactSection(doc, "CLIENT DETAILS", clientDetails, yPosition, margin, contentWidth)
+      // Print left column fields
+      leftColFields.forEach((field) => {
+        doc.setFont("helvetica", "bold")
+        doc.text(field.label, leftColX, contentY)
+        doc.setFont("helvetica", "normal")
+        doc.text(field.value, leftColX + 35, contentY)
+        contentY += 7
+      })
 
-      // Topics Section - using compact layout
-      const topicsData = [
-        { label: "Before the Call?:", value: truncateText(formData.beforeCall, 40) },
-        { label: "After the Call?:", value: truncateText(formData.afterCall, 40) },
-        { label: "Where is your child?:", value: truncateText(formData.kidLocation, 40) },
+      // Reset Y position for right column
+      contentY = yPosition + 5
+
+      // Print right column fields
+      rightColFields.forEach((field) => {
+        doc.setFont("helvetica", "bold")
+        doc.text(field.label, rightColX, contentY)
+        doc.setFont("helvetica", "normal")
+        doc.text(field.value, rightColX + 35, contentY)
+        contentY += 7
+      })
+
+      // Update Y position to after the model details section
+      yPosition += 75
+
+      // Section 2: Client Details
+      doc.setFillColor(50, 50, 50)
+      doc.roundedRect(margin, yPosition, contentWidth, 8, 1, 1, "F")
+      doc.setTextColor(255, 255, 255)
+      doc.setFontSize(12)
+      doc.setFont("helvetica", "bold")
+      doc.text("CLIENT DETAILS", margin + 5, yPosition + 5.5)
+      yPosition += 10
+
+      // Client details content background
+      doc.setFillColor(245, 245, 245)
+      doc.roundedRect(margin, yPosition, contentWidth, 55, 1, 1, "F")
+
+      // Client details content
+      contentY = yPosition + 5
+      doc.setTextColor(0, 0, 0)
+      doc.setFontSize(9)
+
+      // Create two columns for client details
+      const leftClientColX = margin + 5
+      const rightClientColX = margin + colWidth + 5
+
+      // Left column client fields
+      const leftClientFields = [
+        { label: "Name/Age:", value: formData.clientName || "N/A" },
+        { label: "Location:", value: formData.clientLocation || "N/A" },
+        { label: "Work:", value: formData.clientWork || "N/A" },
+        { label: "Nickname:", value: formData.clientnickname || "N/A" },
       ]
 
-      // Add remarks if provided
-      if (formData.remarks.trim() !== "") {
-        topicsData.push({ label: "Additional:", value: truncateText(formData.remarks, 40) })
+      // Right column client fields
+      const rightClientFields = [
+        { label: "Weekend:", value: formData.clientweekend || "N/A" },
+        { label: "Weather:", value: formData.clientweather || "N/A" },
+      ]
+
+      // Add optional fields if they have content
+      if (formData.hobbies) rightClientFields.push({ label: "Hobbies:", value: formData.hobbies })
+      if (formData.clientkid) rightClientFields.push({ label: "Kids:", value: formData.clientkid })
+
+      // Print left column client fields
+      leftClientFields.forEach((field) => {
+        doc.setFont("helvetica", "bold")
+        doc.text(field.label, leftClientColX, contentY)
+        doc.setFont("helvetica", "normal")
+        doc.text(field.value, leftClientColX + 35, contentY)
+        contentY += 7
+      })
+
+      // Reset Y position for right column
+      contentY = yPosition + 5
+
+      // Print right column client fields
+      rightClientFields.forEach((field) => {
+        doc.setFont("helvetica", "bold")
+        doc.text(field.label, rightClientColX, contentY)
+        doc.setFont("helvetica", "normal")
+        doc.text(field.value, rightClientColX + 35, contentY)
+        contentY += 7
+      })
+
+      // Update Y position to after the client details section
+      yPosition += 60
+
+      // Section 3: Topics
+      doc.setFillColor(50, 50, 50)
+      doc.roundedRect(margin, yPosition, contentWidth, 8, 1, 1, "F")
+      doc.setTextColor(255, 255, 255)
+      doc.setFontSize(12)
+      doc.setFont("helvetica", "bold")
+      doc.text("TOPICS TO DISCUSS", margin + 5, yPosition + 5.5)
+      yPosition += 10
+
+      // Topics content background
+      doc.setFillColor(245, 245, 245)
+      doc.roundedRect(margin, yPosition, contentWidth, 70, 1, 1, "F")
+
+      // Topics content
+      contentY = yPosition + 5
+      doc.setTextColor(0, 0, 0)
+      doc.setFontSize(9)
+
+      // Helper function for wrapping text
+      const wrapText = (text: string, x: number, y: number, maxWidth: number, lineHeight: number) => {
+        if (!text || text === "N/A") {
+          doc.text("N/A", x, y)
+          return y + lineHeight
+        }
+
+        const lines = doc.splitTextToSize(text, maxWidth - x)
+        doc.text(lines, x, y)
+        return y + lines.length * lineHeight
       }
 
-      yPosition = addCompactSection(doc, "TOPICS TO DISCUSS", topicsData, yPosition, margin, contentWidth)
+      // Before call
+      doc.setFont("helvetica", "bold")
+      doc.text("Before Call:", margin + 5, contentY)
+      doc.setFont("helvetica", "normal")
+      contentY = wrapText(formData.beforeCall || "N/A", margin + 40, contentY, contentWidth, 5)
+      contentY += 2
+
+      // After call
+      doc.setFont("helvetica", "bold")
+      doc.text("After Call:", margin + 5, contentY)
+      doc.setFont("helvetica", "normal")
+      contentY = wrapText(formData.afterCall || "N/A", margin + 40, contentY, contentWidth, 5)
+      contentY += 2
+
+      // Kid location
+      doc.setFont("helvetica", "bold")
+      doc.text("Child Location:", margin + 5, contentY)
+      doc.setFont("helvetica", "normal")
+      contentY = wrapText(formData.kidLocation || "N/A", margin + 40, contentY, contentWidth, 5)
+      contentY += 2
+
+      // Remarks (if any)
+      if (formData.remarks && formData.remarks.trim() !== "") {
+        doc.setFont("helvetica", "bold")
+        doc.text("Additional Topics:", margin + 5, contentY)
+        doc.setFont("helvetica", "normal")
+        wrapText(formData.remarks, margin + 40, contentY, contentWidth, 5)
+      }
+
+      // Footer with timestamp
+      const timestamp = new Date().toLocaleString()
+      doc.setFontSize(8)
+      doc.setTextColor(100, 100, 100)
+      doc.text(`Generated: ${timestamp}`, pageWidth - margin - 2, pageHeight - margin, { align: "right" })
 
       // Convert to data URL for preview
       const pdfDataUrl = doc.output("datauristring")
@@ -318,64 +455,6 @@ export default function VideoCallTemplate() {
         variant: "destructive",
       })
     }
-  }
-
-  // New compact section layout
-  const addCompactSection = (
-    doc: jsPDF,
-    title: string,
-    items: { label: string; value: string }[],
-    startY: number,
-    margin: number,
-    contentWidth: number,
-  ) => {
-    let y = startY
-
-    // Section title - black background with smaller height
-    doc.setFillColor(0, 0, 0)
-    doc.roundedRect(margin, y, contentWidth, 8, 1, 1, "F")
-    doc.setTextColor(255, 255, 255)
-    doc.setFontSize(13) // Smaller font size
-    doc.setFont("helvetica", "bold")
-    doc.text(title, margin + 5, y + 5.5)
-    y += 10 // Reduced spacing
-
-    // Calculate how many items per row based on content width
-    const itemsPerRow = 2
-    const rows = Math.ceil(items.length / itemsPerRow)
-    const itemWidth = contentWidth / itemsPerRow
-
-    // Section content - grid layout
-    doc.setFillColor(255, 255, 255)
-    doc.roundedRect(margin, y, contentWidth, rows * 8 + 4, 1, 1, "F")
-    y += 4 // Padding top
-
-    // Create grid layout
-    for (let i = 0; i < rows; i++) {
-      for (let j = 0; j < itemsPerRow; j++) {
-        const itemIndex = i * itemsPerRow + j
-        if (itemIndex < items.length) {
-          const item = items[itemIndex]
-          const xPos = margin + j * itemWidth + 3
-
-          // Label
-          doc.setFontSize(7) // Smaller font
-          doc.setTextColor(0, 0, 0)
-          doc.setFont("helvetica", "bold")
-          doc.text(item.label, xPos, y + 3)
-
-          // Value
-          doc.setFont("helvetica", "normal")
-          doc.text(item.value, xPos + 20, y + 3)
-        }
-      }
-      y += 8 // Row height
-    }
-
-    // Add minimal space after the section
-    y += 4
-
-    return y
   }
 
   const handleDownloadPdf = () => {
