@@ -1,5 +1,7 @@
 "use client"
 
+import type React from "react"
+
 import { useState, useEffect, useCallback } from "react"
 import { useClientContext } from "@/context/client-context"
 import { useAuth } from "@/context/auth-context"
@@ -175,17 +177,106 @@ export default function OrdersTable() {
     setIsExportModalOpen(true)
   }
 
-  // Get status badge color
-  const getStatusColor = (status: string) => {
+  // Get status badge variant
+  const getStatusVariant = (status: string): "pending" | "processing" | "completed" | undefined => {
     switch (status) {
       case "Completed":
-        return "bg-green-500"
+        return "completed"
       case "Processing":
-        return "bg-blue-500"
+        return "processing"
       case "Pending":
-        return "bg-yellow-500"
+        return "pending"
       default:
-        return "bg-gray-500"
+        return undefined
+    }
+  }
+
+  // Add this function after the getStatusColor function
+  const handleStatusDoubleClick = (order: Order, event: React.MouseEvent) => {
+    event.stopPropagation()
+
+    // Create a temporary element to show status options
+    const statusOptions = document.createElement("div")
+    statusOptions.className = "absolute z-50 bg-background border rounded-md shadow-lg p-1"
+    statusOptions.style.left = `${event.clientX}px`
+    statusOptions.style.top = `${event.clientY}px`
+
+    const statuses: OrderStatus[] = ["Pending", "Processing", "Completed"]
+
+    statuses.forEach((status) => {
+      const option = document.createElement("div")
+      option.className = `p-2 hover:bg-muted cursor-pointer flex items-center ${order.status === status ? "bg-muted" : ""}`
+
+      const badge = document.createElement("span")
+      const statusVariant = getStatusVariant(status)
+      let badgeClass =
+        "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold text-white mr-2 "
+
+      switch (statusVariant) {
+        case "completed":
+          badgeClass += "bg-green-500"
+          break
+        case "processing":
+          badgeClass += "bg-blue-500"
+          break
+        case "pending":
+          badgeClass += "bg-yellow-500"
+          break
+        default:
+          badgeClass += "bg-gray-500"
+      }
+
+      badge.className = badgeClass
+      badge.textContent = status
+
+      option.appendChild(badge)
+
+      option.addEventListener("click", async () => {
+        if (order.status !== status) {
+          const updatedOrder = { ...order, status }
+          await updateOrder(updatedOrder)
+        }
+        document.body.removeChild(statusOptions)
+      })
+
+      statusOptions.appendChild(option)
+    })
+
+    // Add click outside to close
+    const handleClickOutside = (e: MouseEvent) => {
+      // Check if the element is still in the DOM and is a child of document.body
+      if (document.body.contains(statusOptions) && !statusOptions.contains(e.target as Node)) {
+        try {
+          document.body.removeChild(statusOptions)
+        } catch (error) {
+          console.error("Error removing status options:", error)
+        }
+        document.removeEventListener("click", handleClickOutside)
+      }
+    }
+
+    document.body.appendChild(statusOptions)
+
+    // Add a small delay before adding the event listener to prevent immediate closing
+    setTimeout(() => {
+      document.addEventListener("click", handleClickOutside)
+    }, 100)
+
+    // Ensure cleanup if the popup stays open too long
+    const cleanupTimeout = setTimeout(() => {
+      if (document.body.contains(statusOptions)) {
+        try {
+          document.body.removeChild(statusOptions)
+        } catch (error) {
+          console.error("Error removing status options in cleanup:", error)
+        }
+        document.removeEventListener("click", handleClickOutside)
+      }
+    }, 10000) // 10 seconds timeout as a safety measure
+
+    // Return a cleanup function
+    return () => {
+      clearTimeout(cleanupTimeout)
     }
   }
 
@@ -341,7 +432,13 @@ export default function OrdersTable() {
                   <TableCell>{order.location}</TableCell>
                   <TableCell>{formatCurrency(order.price)}</TableCell>
                   <TableCell>
-                    <Badge className={getStatusColor(order.status)}>{order.status}</Badge>
+                    <Badge
+                      variant={getStatusVariant(order.status)}
+                      className="cursor-pointer"
+                      onDoubleClick={(e) => !isViewer && handleStatusDoubleClick(order, e)}
+                    >
+                      {order.status}
+                    </Badge>
                   </TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
