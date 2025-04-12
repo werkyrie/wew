@@ -541,27 +541,6 @@ export default function AgentTable() {
         </div>
       </div>
 
-      {!isViewer ? (
-        <div className="bg-slate-50 border border-slate-200 rounded-md p-4 text-slate-700 text-sm mb-4 flex items-start shadow-sm dark:bg-slate-800/50 dark:border-slate-700 dark:text-slate-300">
-          <Edit className="h-4 w-4 mr-3 mt-0.5 text-primary" />
-          <div>
-            <p className="font-semibold mb-1">Pro tip:</p>
-            <p>
-              Hover over cells to see edit buttons. Click the edit icon to modify values. Use checkboxes to select
-              multiple agents for bulk actions.
-            </p>
-          </div>
-        </div>
-      ) : (
-        <div className="bg-slate-50 border border-slate-200 rounded-md p-4 text-slate-700 text-sm mb-4 flex items-start shadow-sm dark:bg-slate-800/50 dark:border-slate-700 dark:text-slate-300">
-          <Edit className="h-4 w-4 mr-3 mt-0.5 text-primary" />
-          <div>
-            <p className="font-semibold mb-1">Pro tip:</p>
-            <p>As a viewer, you can edit Added Today, Monthly Added, and Open Accounts fields.</p>
-          </div>
-        </div>
-      )}
-
       <Table>
         <TableHeader className="sticky top-0 bg-gradient-to-r from-slate-100 to-white dark:from-slate-800 dark:to-slate-900 z-10">
           <TableRow className="border-b-2 border-slate-200 dark:border-slate-700">

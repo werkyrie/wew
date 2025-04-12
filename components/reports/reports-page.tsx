@@ -314,8 +314,8 @@ export default function ReportsPage() {
       // Agent section
       report += `AGENT INFORMATION:\n`
       report += `Name: ${agentName || "Not specified"}\n`
-      report += `Added Today: ${addedToday || "0"}\n`
-      report += `Monthly Added: ${monthlyAdded || "0"}\n`
+      report += `Added Client Today: ${addedToday || "0"}\n`
+      report += `Monthly Client Added: ${monthlyAdded || "0"}\n`
       report += `Open Shops: ${openShops || "0"}\n`
       report += `Deposits: ${agentDeposits || "$0"}\n\n`
 
@@ -627,7 +627,7 @@ export default function ReportsPage() {
 
               <div className="space-y-2">
                 <label htmlFor="addedToday" className="text-sm font-medium">
-                  Added Today <span className="text-red-500">*</span>
+                  Added Client Today <span className="text-red-500">*</span>
                 </label>
                 <div className="flex items-center gap-2 h-10 px-3 py-2 rounded-md border border-input bg-muted text-muted-foreground">
                   {addedToday}
@@ -637,7 +637,7 @@ export default function ReportsPage() {
 
               <div className="space-y-2">
                 <label htmlFor="monthlyAdded" className="text-sm font-medium">
-                  Monthly Added <span className="text-red-500">*</span>
+                  Monthly Client Added <span className="text-red-500">*</span>
                 </label>
                 <div className="flex items-center gap-2 h-10 px-3 py-2 rounded-md border border-input bg-muted text-muted-foreground">
                   {monthlyAdded}
