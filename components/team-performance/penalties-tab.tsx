@@ -17,8 +17,13 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
 import type { Penalty } from "@/types/team"
+import { PaginationControls } from "@/components/pagination-controls"
 
 export default function PenaltiesTab() {
+  // Add pagination state
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(5)
+
   const { agents, penalties, addPenalty, deletePenalty, updatePenalty } = useTeamContext()
   const { isViewer, isAdmin } = useAuth() // Get viewer and admin status
   const { toast } = useToast()
@@ -42,6 +47,23 @@ export default function PenaltiesTab() {
     amount: 0,
     date: undefined,
   })
+
+  // Calculate pagination
+  const indexOfLastItem = currentPage * itemsPerPage
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage
+  const currentPenalties = penalties.slice(indexOfFirstItem, indexOfLastItem)
+  const totalPages = Math.ceil(penalties.length / itemsPerPage)
+
+  // Handle page changes
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page)
+  }
+
+  // Handle items per page changes
+  const handleItemsPerPageChange = (newItemsPerPage: number) => {
+    setItemsPerPage(newItemsPerPage)
+    setCurrentPage(1) // Reset to first page when changing items per page
+  }
 
   // Modify the handleAddPenalty function to prevent duplicates
   const handleAddPenalty = async () => {
@@ -324,8 +346,8 @@ export default function PenaltiesTab() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {penalties.length > 0 ? (
-                  penalties.map((penalty) => (
+                {currentPenalties.length > 0 ? (
+                  currentPenalties.map((penalty) => (
                     <TableRow key={penalty.id} className="hover:bg-muted/30 transition-colors">
                       <TableCell>
                         {editingId === penalty.id ? (
@@ -443,6 +465,16 @@ export default function PenaltiesTab() {
           </div>
         </CardContent>
       </Card>
+      {penalties.length > 0 && (
+        <PaginationControls
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={handlePageChange}
+          totalItems={penalties.length}
+          itemsPerPage={itemsPerPage}
+          onItemsPerPageChange={handleItemsPerPageChange}
+        />
+      )}
     </div>
   )
 }

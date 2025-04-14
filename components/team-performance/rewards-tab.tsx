@@ -19,8 +19,13 @@ import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
 import DataResetModal from "@/components/modals/data-reset-modal"
 import type { Reward } from "@/types/team"
+import { PaginationControls } from "@/components/pagination-controls"
 
 export default function RewardsTab() {
+  // Add pagination state
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(5)
+
   const { agents, rewards: existingRewards, addReward, deleteReward, updateReward } = useTeamContext()
   const { isViewer, isAdmin } = useAuth() // Get viewer and admin status
   const { toast } = useToast()
@@ -48,6 +53,23 @@ export default function RewardsTab() {
     date: undefined,
     status: "Pending",
   })
+
+  // Calculate pagination
+  const indexOfLastItem = currentPage * itemsPerPage
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage
+  const currentRewards = existingRewards.slice(indexOfFirstItem, indexOfLastItem)
+  const totalPages = Math.ceil(existingRewards.length / itemsPerPage)
+
+  // Handle page changes
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page)
+  }
+
+  // Handle items per page changes
+  const handleItemsPerPageChange = (newItemsPerPage: number) => {
+    setItemsPerPage(newItemsPerPage)
+    setCurrentPage(1) // Reset to first page when changing items per page
+  }
 
   const handleAddReward = async () => {
     if (!selectedAgentId) {
@@ -400,8 +422,8 @@ export default function RewardsTab() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {existingRewards.length > 0 ? (
-                  existingRewards.map((reward) => (
+                {currentRewards.length > 0 ? (
+                  currentRewards.map((reward) => (
                     <TableRow key={reward.id} className="hover:bg-muted/30 transition-colors">
                       <TableCell>
                         {editingId === reward.id ? (
@@ -541,6 +563,17 @@ export default function RewardsTab() {
           </div>
         </CardContent>
       </Card>
+
+      {existingRewards.length > 0 && (
+        <PaginationControls
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={handlePageChange}
+          totalItems={existingRewards.length}
+          itemsPerPage={itemsPerPage}
+          onItemsPerPageChange={handleItemsPerPageChange}
+        />
+      )}
 
       {/* Data Reset Modal */}
       <DataResetModal isOpen={showResetModal} onClose={() => setShowResetModal(false)} onReset={handleDataReset} />

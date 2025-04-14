@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { useTeamContext } from "@/context/team-context"
 import { useAuth } from "@/context/auth-context"
 import { Button } from "@/components/ui/button"
@@ -18,11 +18,16 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
 import type { Attendance } from "@/types/team"
+import { PaginationControls } from "@/components/pagination-controls"
 
 export default function AttendanceTab() {
   const { agents, attendance, addAttendance, deleteAttendance, updateAttendance } = useTeamContext()
   const { isViewer, isAdmin } = useAuth()
   const { toast } = useToast()
+
+  // Add pagination state
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(5)
 
   const [selectedAgentId, setSelectedAgentId] = useState("")
   const [remarks, setRemarks] = useState("")
@@ -44,6 +49,39 @@ export default function AttendanceTab() {
     date: undefined,
     status: "Whole Day",
   })
+
+  // Sort the attendance records
+  const sortedAttendance = useMemo(() => {
+    const sorted = [...attendance].sort((a, b) => {
+      if (!sortField) return 0
+
+      if (sortField === "date") {
+        const dateA = new Date(a.date).getTime()
+        const dateB = new Date(b.date).getTime()
+        return sortDirection === "asc" ? dateA - dateB : dateB - dateA
+      }
+
+      return 0
+    })
+    return sorted
+  }, [attendance, sortField, sortDirection])
+
+  // Calculate pagination
+  const indexOfLastItem = currentPage * itemsPerPage
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage
+  const currentAttendance = sortedAttendance.slice(indexOfFirstItem, indexOfLastItem)
+  const totalPages = Math.ceil(sortedAttendance.length / itemsPerPage)
+
+  // Handle page changes
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page)
+  }
+
+  // Handle items per page changes
+  const handleItemsPerPageChange = (newItemsPerPage: number) => {
+    setItemsPerPage(newItemsPerPage)
+    setCurrentPage(1) // Reset to first page when changing items per page
+  }
 
   // Modify the handleAddAttendance function to prevent duplicates
   const handleAddAttendance = async () => {
@@ -127,19 +165,6 @@ export default function AttendanceTab() {
       setSortDirection("asc")
     }
   }
-
-  // Sort the attendance records
-  const sortedAttendance = [...attendance].sort((a, b) => {
-    if (!sortField) return 0
-
-    if (sortField === "date") {
-      const dateA = new Date(a.date).getTime()
-      const dateB = new Date(b.date).getTime()
-      return sortDirection === "asc" ? dateA - dateB : dateB - dateA
-    }
-
-    return 0
-  })
 
   const handleExportCsv = () => {
     // Create CSV content
@@ -341,8 +366,8 @@ export default function AttendanceTab() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {sortedAttendance.length > 0 ? (
-                  sortedAttendance.map((record) => (
+                {currentAttendance.length > 0 ? (
+                  currentAttendance.map((record) => (
                     <TableRow key={record.id} className="hover:bg-muted/30 transition-colors">
                       <TableCell>
                         {editingId === record.id ? (
@@ -472,6 +497,16 @@ export default function AttendanceTab() {
           </div>
         </CardContent>
       </Card>
+      {attendance.length > 0 && (
+        <PaginationControls
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={handlePageChange}
+          totalItems={attendance.length}
+          itemsPerPage={itemsPerPage}
+          onItemsPerPageChange={handleItemsPerPageChange}
+        />
+      )}
     </div>
   )
 }

@@ -1,18 +1,21 @@
 "use client"
 
-import { DialogFooter } from "@/components/ui/dialog"
-
 import type React from "react"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { jsPDF } from "jspdf"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Progress } from "@/components/ui/progress"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import {
@@ -20,26 +23,33 @@ import {
   MapPin,
   Briefcase,
   Heart,
-  PawPrintIcon as Paw,
+  PawPrint,
   Users,
   CloudSun,
   Calendar,
   Globe,
   Car,
-  UserIcon as UserTie,
+  UserIcon,
   Tag,
   Clock,
-  BabyIcon as Child,
+  BabyIcon,
   Edit,
   Info,
   FileText,
   Download,
   ArrowLeft,
   CheckCircle,
-  AlertCircle,
+  Video,
+  Music,
+  ChevronDown,
+  ChevronUp,
+  Target,
+  History,
+  MountainIcon as Hiking,
+  CloudRain,
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
-import { useTheme } from "next-themes"
+import { cn } from "@/lib/utils"
 
 interface FormData {
   // Model Details
@@ -137,26 +147,64 @@ export default function VideoCallTemplate() {
     return initialFormData
   })
 
-  const [activeTab, setActiveTab] = useState("model")
+  const [activeSection, setActiveSection] = useState("model")
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
+    model: true,
+    client: false,
+    topics: false,
+  })
   const [progress, setProgress] = useState(0)
   const [pdfUrl, setPdfUrl] = useState<string | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const { toast } = useToast()
   const pdfRef = useRef<HTMLIFrameElement>(null)
+  const confettiContainerRef = useRef<HTMLDivElement>(null)
 
-  const { theme } = useTheme()
-  const isDarkMode = theme === "dark"
+  // Section definitions
+  const sections = [
+    {
+      id: "model",
+      title: "Model Details",
+      icon: <User className="h-4 w-4" />,
+      requiredFields: ["purpose", "fullName", "location", "work", "kids", "weather", "parents", "plans"],
+      optionalFields: ["previousLocation", "divorce", "pet", "ethnicity", "car"],
+    },
+    {
+      id: "client",
+      title: "Client Details",
+      icon: <UserIcon className="h-4 w-4" />,
+      requiredFields: [
+        "clientName",
+        "clientLocation",
+        "clientWork",
+        "clientnickname",
+        "clientweekend",
+        "clientweather",
+      ],
+      optionalFields: ["hobbies", "clientkid"],
+    },
+    {
+      id: "topics",
+      title: "Topics to Discuss",
+      icon: <FileText className="h-4 w-4" />,
+      requiredFields: ["beforeCall", "afterCall", "kidLocation"],
+      optionalFields: ["remarks"],
+    },
+  ]
 
   // Update progress when form data changes
   useEffect(() => {
-    const filledRequiredFields = requiredFields.filter((field) => formData[field as keyof FormData]?.trim() !== "")
-    const newProgress = Math.round((filledRequiredFields.length / requiredFields.length) * 100)
-    setProgress(newProgress)
-
+    updateProgress()
     // Save to localStorage
     localStorage.setItem("videoCallFormData", JSON.stringify(formData))
   }, [formData])
+
+  const updateProgress = () => {
+    const totalFields = requiredFields.length
+    const filledFields = requiredFields.filter((field) => formData[field as keyof FormData]?.trim() !== "").length
+    setProgress(Math.round((filledFields / totalFields) * 100))
+  }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
@@ -166,18 +214,22 @@ export default function VideoCallTemplate() {
     }))
   }
 
-  const isTabComplete = (tab: string) => {
-    const tabFields: Record<string, string[]> = {
-      model: ["purpose", "fullName", "location", "work", "kids", "weather", "parents", "plans"],
-      client: ["clientName", "clientLocation", "clientWork", "clientnickname", "clientweekend", "clientweather"],
-      topics: ["beforeCall", "afterCall", "kidLocation"],
-    }
-
-    return tabFields[tab].every((field) => formData[field as keyof FormData]?.trim() !== "")
+  const isSectionComplete = (sectionId: string) => {
+    const section = sections.find((s) => s.id === sectionId)
+    if (!section) return false
+    return section.requiredFields.every((field) => formData[field as keyof FormData]?.trim() !== "")
   }
 
   const isFormValid = () => {
     return requiredFields.every((field) => formData[field as keyof FormData]?.trim() !== "")
+  }
+
+  const toggleSection = (sectionId: string) => {
+    setExpandedSections((prev) => ({
+      ...prev,
+      [sectionId]: !prev[sectionId],
+    }))
+    setActiveSection(sectionId)
   }
 
   const handleGeneratePdf = () => {
@@ -188,15 +240,17 @@ export default function VideoCallTemplate() {
         variant: "destructive",
       })
 
-      // Find the first tab with incomplete fields and switch to it
-      if (!isTabComplete("model")) {
-        setActiveTab("model")
-      } else if (!isTabComplete("client")) {
-        setActiveTab("client")
-      } else {
-        setActiveTab("topics")
+      // Find the first section with incomplete fields and expand it
+      for (const section of sections) {
+        if (!isSectionComplete(section.id)) {
+          setActiveSection(section.id)
+          setExpandedSections((prev) => ({
+            ...prev,
+            [section.id]: true,
+          }))
+          break
+        }
       }
-
       return
     }
 
@@ -210,251 +264,200 @@ export default function VideoCallTemplate() {
     }, 1000)
   }
 
-  // Helper function to truncate text if it's too long
   const truncateText = (text: string, maxLength: number) => {
     if (!text) return "N/A"
     return text.length > maxLength ? text.substring(0, maxLength) + "..." : text
   }
 
-  // Replace the generatePDF function with this vertical layout version
   const generatePDF = () => {
-    try {
-      const doc = new jsPDF({
-        orientation: "portrait", // Change to portrait for vertical layout
-        unit: "mm",
-        format: "a4",
-      })
+    // Force refresh values from form elements
+    const formValues: Record<string, string> = {}
+    Object.keys(formData).forEach((id) => {
+      formValues[id] = formData[id as keyof FormData] || ""
+    })
 
-      // Set background color based on theme
-      doc.setFillColor(255, 255, 255)
-      doc.rect(0, 0, doc.internal.pageSize.width, doc.internal.pageSize.height, "F")
+    const doc = new jsPDF({
+      orientation: "portrait",
+      unit: "mm",
+      format: "a4",
+    })
 
-      // Page dimensions
-      const pageWidth = doc.internal.pageSize.width
-      const pageHeight = doc.internal.pageSize.height
-      const margin = 10
-      const contentWidth = pageWidth - margin * 2
+    let yPosition = 15
+    const pageWidth = doc.internal.pageSize.width
+    const margin = 20
+    const contentWidth = pageWidth - margin * 2
 
-      // Start position
-      let yPosition = 10
+    // Set page properties - Dark theme
+    doc.setFillColor(15, 15, 20)
+    doc.rect(0, 0, pageWidth, doc.internal.pageSize.height, "F")
 
-      // Title
-      doc.setFontSize(16)
-      doc.setFont("helvetica", "bold")
-      doc.setTextColor(0, 0, 0)
-      doc.text("VIDEO CALL INFORMATION", pageWidth / 2, yPosition, { align: "center" })
-      yPosition += 10
+    // Title with gradient effect
+    doc.setFontSize(16)
+    doc.setFont("helvetica", "bold")
 
-      // Section 1: Model Details
-      doc.setFillColor(50, 50, 50)
-      doc.roundedRect(margin, yPosition, contentWidth, 8, 1, 1, "F")
-      doc.setTextColor(255, 255, 255)
+    // Background rectangle for title
+    doc.setFillColor(25, 25, 30)
+    doc.roundedRect(20, yPosition - 8, doc.internal.pageSize.width - 40, 16, 5, 5, "F")
+
+    // Title text - TikTok colors
+    doc.setTextColor(255, 0, 80)
+    doc.text("TikTok Video Call Details", pageWidth / 2, yPosition, { align: "center" })
+    yPosition += 10
+
+    // Add date/time banner
+    const now = new Date()
+    const options: Intl.DateTimeFormatOptions = {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    }
+    const formattedDate = now.toLocaleDateString("en-US", options)
+
+    // Date banner
+    doc.setFillColor(25, 25, 30)
+    doc.roundedRect(margin, yPosition, contentWidth, 10, 3, 3, "F")
+    doc.setTextColor(180, 180, 180)
+    doc.setFontSize(9)
+    doc.text(`Generated on: ${formattedDate}`, pageWidth / 2, yPosition + 6, { align: "center" })
+    yPosition += 18
+
+    // Function to add a section with a modern look
+    const addModernSection = (
+      doc: jsPDF,
+      title: string,
+      data: { label: string; value: string }[],
+      yPosition: number,
+      margin: number,
+      contentWidth: number,
+    ) => {
+      // Section title with modern styling
+      doc.setFillColor(30, 30, 35)
+      doc.roundedRect(margin, yPosition - 5, contentWidth, 12, 4, 4, "F")
+
+      // Section title text
       doc.setFontSize(12)
-      doc.setFont("helvetica", "bold")
-      doc.text("MODEL DETAILS", margin + 5, yPosition + 5.5)
-      yPosition += 10
-
-      // Model details content background
-      doc.setFillColor(245, 245, 245)
-      doc.roundedRect(margin, yPosition, contentWidth, 70, 1, 1, "F")
-
-      // Model details content
-      let contentY = yPosition + 5
-      doc.setTextColor(0, 0, 0)
-      doc.setFontSize(9)
-
-      // Create two columns for model details to save space
-      const colWidth = contentWidth / 2
-      const leftColX = margin + 5
-      const rightColX = margin + colWidth + 5
-
-      // Key model details - left column
-      const leftColFields = [
-        { label: "Purpose:", value: formData.purpose || "N/A" },
-        { label: "Name/Age:", value: formData.fullName || "N/A" },
-        { label: "Location:", value: formData.location || "N/A" },
-        { label: "Work:", value: formData.work || "N/A" },
-        { label: "Kids:", value: formData.kids || "N/A" },
-        { label: "Weather:", value: formData.weather || "N/A" },
-      ]
-
-      // Key model details - right column
-      const rightColFields = [
-        { label: "Parents:", value: formData.parents || "N/A" },
-        { label: "Plans:", value: formData.plans || "N/A" },
-      ]
-
-      // Add optional fields if they have content
-      if (formData.previousLocation) rightColFields.push({ label: "Prev. Location:", value: formData.previousLocation })
-      if (formData.divorce) rightColFields.push({ label: "Relationship:", value: formData.divorce })
-      if (formData.pet) rightColFields.push({ label: "Pet:", value: formData.pet })
-      if (formData.ethnicity) rightColFields.push({ label: "Ethnicity:", value: formData.ethnicity })
-      if (formData.car) rightColFields.push({ label: "Vehicle:", value: formData.car })
-
-      // Print left column fields
-      leftColFields.forEach((field) => {
-        doc.setFont("helvetica", "bold")
-        doc.text(field.label, leftColX, contentY)
-        doc.setFont("helvetica", "normal")
-        doc.text(field.value, leftColX + 35, contentY)
-        contentY += 7
-      })
-
-      // Reset Y position for right column
-      contentY = yPosition + 5
-
-      // Print right column fields
-      rightColFields.forEach((field) => {
-        doc.setFont("helvetica", "bold")
-        doc.text(field.label, rightColX, contentY)
-        doc.setFont("helvetica", "normal")
-        doc.text(field.value, rightColX + 35, contentY)
-        contentY += 7
-      })
-
-      // Update Y position to after the model details section
-      yPosition += 75
-
-      // Section 2: Client Details
-      doc.setFillColor(50, 50, 50)
-      doc.roundedRect(margin, yPosition, contentWidth, 8, 1, 1, "F")
       doc.setTextColor(255, 255, 255)
-      doc.setFontSize(12)
       doc.setFont("helvetica", "bold")
-      doc.text("CLIENT DETAILS", margin + 5, yPosition + 5.5)
-      yPosition += 10
+      doc.text(title, margin + 10, yPosition + 2)
+      yPosition += 14
 
-      // Client details content background
-      doc.setFillColor(245, 245, 245)
-      doc.roundedRect(margin, yPosition, contentWidth, 55, 1, 1, "F")
+      // Modern card for content
+      doc.setFillColor(22, 22, 28)
+      doc.roundedRect(margin, yPosition - 5, contentWidth, 10 + data.length * 9, 4, 4, "F")
+      yPosition += 5
 
-      // Client details content
-      contentY = yPosition + 5
-      doc.setTextColor(0, 0, 0)
-      doc.setFontSize(9)
-
-      // Create two columns for client details
-      const leftClientColX = margin + 5
-      const rightClientColX = margin + colWidth + 5
-
-      // Left column client fields
-      const leftClientFields = [
-        { label: "Name/Age:", value: formData.clientName || "N/A" },
-        { label: "Location:", value: formData.clientLocation || "N/A" },
-        { label: "Work:", value: formData.clientWork || "N/A" },
-        { label: "Nickname:", value: formData.clientnickname || "N/A" },
-      ]
-
-      // Right column client fields
-      const rightClientFields = [
-        { label: "Weekend:", value: formData.clientweekend || "N/A" },
-        { label: "Weather:", value: formData.clientweather || "N/A" },
-      ]
-
-      // Add optional fields if they have content
-      if (formData.hobbies) rightClientFields.push({ label: "Hobbies:", value: formData.hobbies })
-      if (formData.clientkid) rightClientFields.push({ label: "Kids:", value: formData.clientkid })
-
-      // Print left column client fields
-      leftClientFields.forEach((field) => {
-        doc.setFont("helvetica", "bold")
-        doc.text(field.label, leftClientColX, contentY)
-        doc.setFont("helvetica", "normal")
-        doc.text(field.value, leftClientColX + 35, contentY)
-        contentY += 7
-      })
-
-      // Reset Y position for right column
-      contentY = yPosition + 5
-
-      // Print right column client fields
-      rightClientFields.forEach((field) => {
-        doc.setFont("helvetica", "bold")
-        doc.text(field.label, rightClientColX, contentY)
-        doc.setFont("helvetica", "normal")
-        doc.text(field.value, rightClientColX + 35, contentY)
-        contentY += 7
-      })
-
-      // Update Y position to after the client details section
-      yPosition += 60
-
-      // Section 3: Topics
-      doc.setFillColor(50, 50, 50)
-      doc.roundedRect(margin, yPosition, contentWidth, 8, 1, 1, "F")
-      doc.setTextColor(255, 255, 255)
-      doc.setFontSize(12)
-      doc.setFont("helvetica", "bold")
-      doc.text("TOPICS TO DISCUSS", margin + 5, yPosition + 5.5)
-      yPosition += 10
-
-      // Topics content background
-      doc.setFillColor(245, 245, 245)
-      doc.roundedRect(margin, yPosition, contentWidth, 70, 1, 1, "F")
-
-      // Topics content
-      contentY = yPosition + 5
-      doc.setTextColor(0, 0, 0)
-      doc.setFontSize(9)
-
-      // Helper function for wrapping text
-      const wrapText = (text: string, x: number, y: number, maxWidth: number, lineHeight: number) => {
-        if (!text || text === "N/A") {
-          doc.text("N/A", x, y)
-          return y + lineHeight
+      // Section content with modern styling - NO separator lines
+      doc.setFont("helvetica", "normal")
+      data.forEach((item, index) => {
+        // Alternate row backgrounds without lines
+        if (index % 2 === 0) {
+          doc.setFillColor(25, 25, 32, 0.5)
+          doc.roundedRect(margin + 5, yPosition - 3, contentWidth - 10, 10, 2, 2, "F")
         }
 
-        const lines = doc.splitTextToSize(text, maxWidth - x)
-        doc.text(lines, x, y)
-        return y + lines.length * lineHeight
-      }
-
-      // Before call
-      doc.setFont("helvetica", "bold")
-      doc.text("Before Call:", margin + 5, contentY)
-      doc.setFont("helvetica", "normal")
-      contentY = wrapText(formData.beforeCall || "N/A", margin + 40, contentY, contentWidth, 5)
-      contentY += 2
-
-      // After call
-      doc.setFont("helvetica", "bold")
-      doc.text("After Call:", margin + 5, contentY)
-      doc.setFont("helvetica", "normal")
-      contentY = wrapText(formData.afterCall || "N/A", margin + 40, contentY, contentWidth, 5)
-      contentY += 2
-
-      // Kid location
-      doc.setFont("helvetica", "bold")
-      doc.text("Child Location:", margin + 5, contentY)
-      doc.setFont("helvetica", "normal")
-      contentY = wrapText(formData.kidLocation || "N/A", margin + 40, contentY, contentWidth, 5)
-      contentY += 2
-
-      // Remarks (if any)
-      if (formData.remarks && formData.remarks.trim() !== "") {
+        // Label
+        doc.setFontSize(8)
+        doc.setTextColor(0, 242, 234)
         doc.setFont("helvetica", "bold")
-        doc.text("Additional Topics:", margin + 5, contentY)
+        doc.text(item.label, margin + 10, yPosition)
+
+        // Value
         doc.setFont("helvetica", "normal")
-        wrapText(formData.remarks, margin + 40, contentY, contentWidth, 5)
-      }
+        doc.setFontSize(9)
+        doc.setTextColor(255, 255, 255)
 
-      // Footer with timestamp
-      const timestamp = new Date().toLocaleString()
-      doc.setFontSize(8)
-      doc.setTextColor(100, 100, 100)
-      doc.text(`Generated: ${timestamp}`, pageWidth - margin - 2, pageHeight - margin, { align: "right" })
+        const maxWidth = contentWidth - 55
+        const textLines = doc.splitTextToSize(item.value, maxWidth)
+        doc.text(textLines, margin + 55, yPosition)
 
-      // Convert to data URL for preview
-      const pdfDataUrl = doc.output("datauristring")
-      setPdfUrl(pdfDataUrl)
-    } catch (error) {
-      console.error("Error generating PDF:", error)
-      toast({
-        title: "Error generating PDF",
-        description: "There was a problem creating your PDF. Please try again.",
-        variant: "destructive",
+        // Calculate space needed for wrapped text
+        yPosition += 6 + (textLines.length - 1) * 4
       })
+
+      // Add space after the section
+      yPosition += 10
+
+      return yPosition
     }
+
+    // Process model data with optional fields
+    const modelData = [
+      { label: "Purpose of Call:", value: formValues["purpose"] || "N/A" },
+      { label: "Full Name / Age:", value: formValues["fullName"] || "N/A" },
+      { label: "Current Location:", value: formValues["location"] || "N/A" },
+      { label: "Previous Location:", value: formValues["previousLocation"] || "N/A" },
+      { label: "Occupation:", value: formValues["work"] || "N/A" },
+      { label: "Relationship Status:", value: formValues["divorce"] || "N/A" },
+      { label: "Pet Details:", value: formValues["pet"] || "N/A" },
+      { label: "Children Details:", value: formValues["kids"] || "N/A" },
+      { label: "Weather and Time:", value: formValues["weather"] || "N/A" },
+      { label: "Parent Details:", value: formValues["parents"] || "N/A" },
+      { label: "Weekend Plans:", value: formValues["plans"] || "N/A" },
+      { label: "Ethnicity:", value: formValues["ethnicity"] || "N/A" },
+      { label: "Vehicle Details:", value: formValues["car"] || "N/A" },
+    ]
+
+    // Add model section to PDF
+    yPosition = addModernSection(doc, "MODEL DETAILS", modelData, yPosition, margin, contentWidth)
+
+    // Process client data with optional fields
+    const clientData = [
+      { label: "Full Name / Age:", value: formValues["clientName"] || "N/A" },
+      { label: "Location:", value: formValues["clientLocation"] || "N/A" },
+      { label: "Occupation:", value: formValues["clientWork"] || "N/A" },
+      { label: "Hobbies:", value: formValues["hobbies"] || "N/A" },
+      { label: "Children Details:", value: formValues["clientkid"] || "N/A" },
+      { label: "Nickname:", value: formValues["clientnickname"] || "N/A" },
+      { label: "Weekend Plans:", value: formValues["clientweekend"] || "N/A" },
+      { label: "Weather and Time:", value: formValues["clientweather"] || "N/A" },
+    ]
+
+    // Add client section to PDF
+    yPosition = addModernSection(doc, "CLIENT DETAILS", clientData, yPosition, margin, contentWidth)
+
+    // Process topics data with optional field
+    const topicsData = [
+      { label: "What you do before the call?:", value: formValues["beforeCall"] || "N/A" },
+      { label: "What will you do after the call?:", value: formValues["afterCall"] || "N/A" },
+      { label: "Where is your Child?:", value: formValues["kidLocation"] || "N/A" },
+    ]
+
+    // Add remarks if provided
+    const remarks = formValues["remarks"]
+    if (remarks.trim() !== "") {
+      topicsData.push({ label: "Additional Topics:", value: remarks })
+    }
+
+    // Add topics section to PDF
+    yPosition = addModernSection(doc, "TOPICS TO DISCUSS", topicsData, yPosition, margin, contentWidth)
+
+    // Add footer with TikTok branding
+    // Footer block
+    doc.setFillColor(25, 25, 30)
+    doc.roundedRect(margin, 275, contentWidth, 12, 3, 3, "F")
+
+    // TikTok logo (simplified)
+    doc.setFontSize(9)
+    doc.setFont("helvetica", "bold")
+    doc.setTextColor(255, 0, 80)
+    doc.text("TikTok", 25, 282)
+
+    // Page info
+    doc.setFont("helvetica", "normal")
+    doc.setTextColor(150, 150, 150)
+    doc.text("Video Call Information", pageWidth / 2, 282, { align: "center" })
+
+    // Timestamp
+    const timestamp = new Date().toISOString().replace(/T/, " ").replace(/\..+/, "")
+    doc.setFontSize(6)
+    doc.setTextColor(100, 100, 100)
+    doc.text(`ID: TT-${timestamp.substring(0, 10)}`, pageWidth - 25, 282)
+
+    // Convert to data URL for preview
+    const pdfDataUrl = doc.output("datauristring")
+    setPdfUrl(pdfDataUrl)
   }
 
   const handleDownloadPdf = () => {
@@ -465,9 +468,8 @@ export default function VideoCallTemplate() {
     link.href = pdfUrl
 
     // Use client name for the filename if available, otherwise use a timestamp
-    const clientName = formData.clientName.split("/")[0].trim() || "Client"
-    const timestamp = new Date().toISOString().replace(/[:.]/g, "-")
-    link.download = `${clientName}_VideoCall_${timestamp}.pdf`
+    const timestamp = new Date().getTime()
+    link.download = `TikTok_Video_Call_Details_${timestamp}.pdf`
 
     // Trigger download
     document.body.appendChild(link)
@@ -478,6 +480,9 @@ export default function VideoCallTemplate() {
       title: "PDF Downloaded",
       description: "Your video call information has been downloaded successfully.",
     })
+
+    // Create confetti effect
+    createConfetti()
   }
 
   const handleReset = () => {
@@ -485,12 +490,45 @@ export default function VideoCallTemplate() {
       setFormData(initialFormData)
       localStorage.removeItem("videoCallFormData")
       setPdfUrl(null)
-      setActiveTab("model")
+      setActiveSection("model")
+      setExpandedSections({
+        model: true,
+        client: false,
+        topics: false,
+      })
       toast({
         title: "Form Reset",
         description: "All form data has been cleared.",
       })
     }
+  }
+
+  const createConfetti = () => {
+    if (!confettiContainerRef.current) return
+
+    const container = confettiContainerRef.current
+    container.innerHTML = ""
+
+    const colors = ["#ff0050", "#00f2ea", "#ffffff", "#fffc00"]
+
+    for (let i = 0; i < 100; i++) {
+      const confetti = document.createElement("div")
+      confetti.className = "confetti"
+      confetti.style.position = "absolute"
+      confetti.style.width = `${Math.random() * 10 + 5}px`
+      confetti.style.height = `${Math.random() * 6 + 4}px`
+      confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)]
+      confetti.style.left = `${Math.random() * 100}vw`
+      confetti.style.opacity = `${Math.random() * 0.6 + 0.4}`
+      confetti.style.animation = `confetti-fall ${Math.random() * 3 + 2}s linear forwards`
+
+      container.appendChild(confetti)
+    }
+
+    // Remove confetti after animation completes
+    setTimeout(() => {
+      container.innerHTML = ""
+    }, 5000)
   }
 
   const renderFormField = (
@@ -502,13 +540,18 @@ export default function VideoCallTemplate() {
     helpText = "",
     tooltip = "",
   ) => {
+    const isCompleted = formData[name]?.trim() !== ""
+
     return (
       <div className="space-y-2">
         <div className="flex items-center">
           <label htmlFor={name} className="text-sm font-medium flex items-center gap-1">
             {label}
             {required && (
-              <Badge variant="destructive" className="text-[10px] py-0">
+              <Badge
+                variant="outline"
+                className="text-[10px] py-0 border-[#FE2C55] text-[#FE2C55] dark:border-[#FE2C55] dark:text-[#FE2C55]"
+              >
                 Required
               </Badge>
             )}
@@ -518,7 +561,7 @@ export default function VideoCallTemplate() {
                   <TooltipTrigger asChild>
                     <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help ml-1" />
                   </TooltipTrigger>
-                  <TooltipContent className="max-w-xs">
+                  <TooltipContent className="max-w-xs bg-[#000000] text-white border-[#25F4EE]">
                     <p className="text-xs">{tooltip}</p>
                   </TooltipContent>
                 </Tooltip>
@@ -527,348 +570,438 @@ export default function VideoCallTemplate() {
           </label>
         </div>
         <div className="relative">
-          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">{icon}</div>
+          <div
+            className={`absolute left-3 top-1/2 -translate-y-1/2 ${isCompleted ? "text-[#25F4EE]" : "text-muted-foreground"}`}
+          >
+            {icon}
+          </div>
           <Input
             id={name}
             name={name}
             value={formData[name]}
             onChange={handleInputChange}
-            className="pl-10"
+            className={`pl-10 transition-all duration-200 ${
+              isCompleted
+                ? "border-[#25F4EE] ring-1 ring-[#25F4EE]/20 dark:ring-[#25F4EE]/30"
+                : "focus:border-[#FE2C55] focus:ring-1 focus:ring-[#FE2C55]/20 dark:focus:ring-[#FE2C55]/30"
+            }`}
             placeholder={placeholder}
             required={required}
           />
-          {formData[name] && (
-            <CheckCircle className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-green-500" />
-          )}
+          {isCompleted && <CheckCircle className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#25F4EE]" />}
         </div>
         {helpText && <p className="text-xs text-muted-foreground">{helpText}</p>}
       </div>
     )
   }
 
+  // Get progress color based on completion percentage
+  const getProgressColor = () => {
+    if (progress < 33) return "from-[#FE2C55] to-[#FE2C55]"
+    if (progress < 66) return "from-[#FE2C55] to-[#25F4EE]"
+    if (progress < 100) return "from-[#25F4EE] to-[#25F4EE]"
+    return "from-[#25F4EE] to-[#25F4EE]"
+  }
+
   return (
     <div className="container mx-auto py-6 max-w-4xl">
-      <Card className="border shadow-md dark:bg-gray-900 dark:border-gray-800">
-        <CardHeader className="pb-4 dark:text-gray-100">
-          <CardTitle className="text-2xl font-bold text-center">Video Call Information</CardTitle>
-          <CardDescription className="text-center dark:text-gray-300">
-            Fill out the details for your upcoming video call
-          </CardDescription>
-          <div className="mt-6 space-y-2">
-            <div className="flex justify-between text-xs text-muted-foreground">
-              <span className={progress >= 0 ? "font-medium" : ""}>Start</span>
-              <span className={progress >= 33 ? "font-medium" : ""}>Model Details</span>
-              <span className={progress >= 66 ? "font-medium" : ""}>Client Details</span>
-              <span className={progress >= 100 ? "font-medium" : ""}>Complete</span>
+      <Card className="border shadow-lg overflow-hidden dark:bg-[#121212] dark:border-[#333333] relative">
+        {/* TikTok-style decorative elements */}
+        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-[#25F4EE]/20 to-[#FE2C55]/20 rounded-bl-full -z-10"></div>
+        <div className="absolute bottom-0 left-0 w-32 h-32 bg-gradient-to-tr from-[#25F4EE]/20 to-[#FE2C55]/20 rounded-tr-full -z-10"></div>
+
+        <div className="pb-4 dark:text-white bg-gradient-to-r from-[#000000] to-[#121212] border-b border-[#333333] p-6">
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <div className="relative">
+              <Video className="h-6 w-6 text-[#25F4EE]" />
+              <Music className="h-3 w-3 text-[#FE2C55] absolute -top-1 -right-1" />
             </div>
-            <Progress value={progress} className="h-2 dark:bg-gray-800" />
+            <h1 className="text-2xl font-bold text-center bg-clip-text text-transparent bg-gradient-to-r from-[#25F4EE] to-[#FE2C55]">
+              Video Call Information
+            </h1>
           </div>
-        </CardHeader>
-
-        <CardContent>
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid grid-cols-3 mb-6 dark:bg-gray-800">
-              <TabsTrigger value="model" className="relative">
+          <p className="text-center text-gray-300 text-sm">For Team Hotel Use Only!</p>
+          <div className="mt-6 space-y-2">
+            <div className="flex justify-between text-xs">
+              <span className={`${progress >= 0 ? "font-medium text-[#25F4EE]" : "text-muted-foreground"}`}>Start</span>
+              <span className={`${progress >= 33 ? "font-medium text-[#25F4EE]" : "text-muted-foreground"}`}>
                 Model Details
-                {isTabComplete("model") && (
-                  <span className="absolute -top-1 -right-1">
-                    <CheckCircle className="h-4 w-4 text-green-500" />
-                  </span>
-                )}
-              </TabsTrigger>
-              <TabsTrigger value="client" className="relative">
+              </span>
+              <span className={`${progress >= 66 ? "font-medium text-[#25F4EE]" : "text-muted-foreground"}`}>
                 Client Details
-                {isTabComplete("client") && (
-                  <span className="absolute -top-1 -right-1">
-                    <CheckCircle className="h-4 w-4 text-green-500" />
-                  </span>
-                )}
-              </TabsTrigger>
-              <TabsTrigger value="topics" className="relative">
-                Topics
-                {isTabComplete("topics") && (
-                  <span className="absolute -top-1 -right-1">
-                    <CheckCircle className="h-4 w-4 text-green-500" />
-                  </span>
-                )}
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="model" className="space-y-6 animate-in fade-in-50">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {renderFormField(
-                  "purpose",
-                  "Purpose of Call",
-                  <Info className="h-4 w-4" />,
-                  true,
-                  "E.g., Authenticity",
-                )}
-                {renderFormField(
-                  "fullName",
-                  "Full Name and Age",
-                  <User className="h-4 w-4" />,
-                  true,
-                  "E.g., Jane Smith / 30",
-                  "Format: Name / Age",
-                )}
-                {renderFormField(
-                  "location",
-                  "Current Location",
-                  <MapPin className="h-4 w-4" />,
-                  true,
-                  "E.g., Makati (5 years)",
-                  "",
-                  "Include city/area and how many years you've lived there",
-                )}
-                {renderFormField(
-                  "previousLocation",
-                  "Previous Location",
-                  <MapPin className="h-4 w-4" />,
-                  false,
-                  "E.g., Manila",
-                )}
-                {renderFormField(
-                  "work",
-                  "Occupation",
-                  <Briefcase className="h-4 w-4" />,
-                  true,
-                  "E.g., Executive Assistant",
-                )}
-                {renderFormField(
-                  "divorce",
-                  "Relationship Status",
-                  <Heart className="h-4 w-4" />,
-                  false,
-                  "E.g., Separated since 2022 (2 years)",
-                  "If applicable, include when and for how long",
-                )}
-                {renderFormField(
-                  "pet",
-                  "Pet Details",
-                  <Paw className="h-4 w-4" />,
-                  false,
-                  "E.g., Dog / Max / 3 years old",
-                  "Type, name, age (or 'None' if not applicable)",
-                )}
-                {renderFormField(
-                  "kids",
-                  "Children Details",
-                  <Child className="h-4 w-4" />,
-                  true,
-                  "E.g., Sofia / 8 / ABC School / Grade 3",
-                  "Names, ages, schools, grades (or 'NA' if not applicable)",
-                )}
-                {renderFormField(
-                  "weather",
-                  "Current Weather & Time",
-                  <CloudSun className="h-4 w-4" />,
-                  true,
-                  "E.g., Sunny, 3:45 PM",
-                )}
-                {renderFormField(
-                  "parents",
-                  "Parents Details",
-                  <Users className="h-4 w-4" />,
-                  true,
-                  "E.g., Mother (62, retired), Father (deceased)",
-                  "Just put N/A if not mentioned",
-                )}
-                {renderFormField(
-                  "plans",
-                  "Weekend Plans",
-                  <Calendar className="h-4 w-4" />,
-                  true,
-                  "E.g., Beach trip with friends",
-                )}
-                {renderFormField(
-                  "ethnicity",
-                  "Ethnicity",
-                  <Globe className="h-4 w-4" />,
-                  false,
-                  "E.g., Filipina Taiwanese",
-                )}
-                {renderFormField(
-                  "car",
-                  "Vehicle Details",
-                  <Car className="h-4 w-4" />,
-                  false,
-                  "E.g., Toyota Corolla 2020",
-                  "Make, model, year (or 'None' if not applicable)",
-                  "Make, model, year (or 'None' if not applicable)",
-                )}
-              </div>
-              <div className="flex justify-end">
-                <Button onClick={() => setActiveTab("client")} disabled={!isTabComplete("model")}>
-                  Next: Client Details
-                </Button>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="client" className="space-y-6 animate-in fade-in-50">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {renderFormField(
-                  "clientName",
-                  "Full Name and Age",
-                  <UserTie className="h-4 w-4" />,
-                  true,
-                  "E.g., John Doe / 32",
-                )}
-                {renderFormField("clientLocation", "Location", <MapPin className="h-4 w-4" />, true, "E.g., New York")}
-                {renderFormField(
-                  "clientWork",
-                  "Occupation",
-                  <Briefcase className="h-4 w-4" />,
-                  true,
-                  "E.g., Marketing Manager",
-                )}
-                {renderFormField(
-                  "hobbies",
-                  "Hobbies",
-                  <Calendar className="h-4 w-4" />,
-                  false,
-                  "E.g., Hiking, Travel",
-                  "Enter 'None' if not applicable",
-                )}
-                {renderFormField(
-                  "clientkid",
-                  "Children Details",
-                  <Child className="h-4 w-4" />,
-                  false,
-                  "E.g., Lily / 3",
-                  "Names and ages (or 'None' if not applicable)",
-                )}
-                {renderFormField(
-                  "clientnickname",
-                  "Nickname",
-                  <Tag className="h-4 w-4" />,
-                  true,
-                  "E.g., Johnny",
-                  "Enter 'None' if not applicable",
-                )}
-                {renderFormField(
-                  "clientweekend",
-                  "Weekend Plans",
-                  <Calendar className="h-4 w-4" />,
-                  true,
-                  "E.g., Fishing trip",
-                  "Enter 'None' if not applicable",
-                )}
-                {renderFormField(
-                  "clientweather",
-                  "Weather and Time",
-                  <CloudSun className="h-4 w-4" />,
-                  true,
-                  "E.g., Rainy, 10:30 AM",
-                  "Based on client's location",
-                )}
-              </div>
-              <div className="flex justify-between">
-                <Button variant="outline" onClick={() => setActiveTab("model")}>
-                  <ArrowLeft className="mr-2 h-4 w-4" /> Back
-                </Button>
-                <Button onClick={() => setActiveTab("topics")} disabled={!isTabComplete("client")}>
-                  Next: Topics
-                </Button>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="topics" className="space-y-6 animate-in fade-in-50">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {renderFormField(
-                  "beforeCall",
-                  "What are you doing before Video Call?",
-                  <Clock className="h-4 w-4" />,
-                  true,
-                  "E.g., Preparing lunch",
-                  "",
-                  "Activities you were doing just before the video call",
-                )}
-                {renderFormField(
-                  "afterCall",
-                  "What will you do after the Call?",
-                  <Clock className="h-4 w-4" />,
-                  true,
-                  "E.g., Going to the mall",
-                  "",
-                  "What you plan to do after finishing the video call",
-                )}
-                {renderFormField(
-                  "kidLocation",
-                  "Where is your child right now, and what is she doing?",
-                  <Child className="h-4 w-4" />,
-                  true,
-                  "E.g., At school",
-                  "Asan ung Anak mo at ano ung Ginagawa nya?",
-                )}
-                <div className="space-y-2 md:col-span-2">
-                  <label htmlFor="remarks" className="text-sm font-medium">
-                    Additional Topics
-                  </label>
-                  <div className="relative">
-                    <div className="absolute left-3 top-3 text-muted-foreground">
-                      <Edit className="h-4 w-4" />
-                    </div>
-                    <Textarea
-                      id="remarks"
-                      name="remarks"
-                      value={formData.remarks}
-                      onChange={handleInputChange}
-                      className="pl-10 min-h-[100px]"
-                      placeholder="Specific topics you'd like to discuss with your client..."
-                    />
-                  </div>
-                  <p className="text-xs text-muted-foreground">Ilagay nyo dito ung gusto nyo I highlight sa Tawag.</p>
-                </div>
-              </div>
-              <div className="flex justify-between">
-                <Button variant="outline" onClick={() => setActiveTab("client")}>
-                  <ArrowLeft className="mr-2 h-4 w-4" /> Back
-                </Button>
-                <Button onClick={handleGeneratePdf} disabled={!isFormValid()}>
-                  <FileText className="mr-2 h-4 w-4" /> Generate PDF
-                </Button>
-              </div>
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-
-        <CardFooter className="flex justify-between border-t pt-6">
-          <Button variant="outline" onClick={handleReset}>
-            Reset Form
-          </Button>
-          <div className="text-sm text-muted-foreground">
-            {progress === 100 ? (
-              <span className="flex items-center text-green-500">
-                <CheckCircle className="mr-1 h-4 w-4" /> All required fields completed
               </span>
-            ) : (
-              <span className="flex items-center">
-                <AlertCircle className="mr-1 h-4 w-4" />{" "}
-                {requiredFields.length -
-                  requiredFields.filter((field) => formData[field as keyof FormData]?.trim() !== "").length}{" "}
-                required fields remaining
+              <span className={`${progress >= 100 ? "font-medium text-[#25F4EE]" : "text-muted-foreground"}`}>
+                Complete
               </span>
-            )}
+            </div>
+            <div className="h-2 w-full bg-[#333333] rounded-full overflow-hidden">
+              <div
+                className={`h-full bg-gradient-to-r ${getProgressColor()} transition-all duration-500 ease-out`}
+                style={{ width: `${progress}%` }}
+              ></div>
+            </div>
+            <p className="text-xs text-center text-muted-foreground">
+              {progress === 100 ? (
+                <span className="text-[#25F4EE] flex items-center justify-center gap-1">
+                  <CheckCircle className="h-3 w-3" /> All fields completed!
+                </span>
+              ) : (
+                `${progress}% complete`
+              )}
+            </p>
           </div>
-        </CardFooter>
+        </div>
+
+        <CardContent className="p-6 dark:bg-[#121212]">
+          <div className="space-y-4">
+            {/* Model Details Section */}
+            <div
+              className={cn(
+                "bg-[#1a1a1a] border-l-4 rounded-lg overflow-hidden transition-all duration-300",
+                activeSection === "model" ? "border-l-[#25F4EE]" : "border-l-transparent hover:border-l-[#25F4EE]/30",
+              )}
+            >
+              <div className="flex items-center p-4 cursor-pointer" onClick={() => toggleSection("model")}>
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#25F4EE] to-[#FE2C55] flex items-center justify-center mr-3 shadow-lg">
+                  <User className="h-5 w-5 text-white" />
+                </div>
+                <h2 className="text-lg font-semibold flex-1">
+                  Model Details
+                  <span
+                    className={cn(
+                      "ml-2 inline-flex h-5 w-5 items-center justify-center rounded-full text-xs",
+                      isSectionComplete("model") ? "bg-[#25F4EE]/20 text-[#25F4EE]" : "bg-gray-800 text-gray-400",
+                    )}
+                  >
+                    {isSectionComplete("model") ? <CheckCircle className="h-3 w-3" /> : "!"}
+                  </span>
+                </h2>
+                <button className="h-8 w-8 rounded-full flex items-center justify-center bg-[#252525] text-gray-400 hover:bg-[#333] hover:text-white transition-colors">
+                  {expandedSections.model ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                </button>
+              </div>
+
+              {expandedSections.model && (
+                <div className="p-5 border-t border-[#333] animate-in fade-in-50 duration-300">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {renderFormField(
+                      "purpose",
+                      "Purpose of Call",
+                      <Target className="h-4 w-4" />,
+                      true,
+                      "E.g., Authenticity",
+                    )}
+                    {renderFormField(
+                      "fullName",
+                      "Full Name / Age",
+                      <User className="h-4 w-4" />,
+                      true,
+                      "E.g., Jane Smith / 30",
+                      "Format: Name / Age",
+                    )}
+                    {renderFormField(
+                      "location",
+                      "Current Location",
+                      <MapPin className="h-4 w-4" />,
+                      true,
+                      "E.g., Makati (5 years)",
+                      "",
+                      "Include city/area and how many years you've lived there",
+                    )}
+                    {renderFormField(
+                      "previousLocation",
+                      "Previous Location",
+                      <History className="h-4 w-4" />,
+                      false,
+                      "E.g., Manila",
+                    )}
+                    {renderFormField(
+                      "work",
+                      "Occupation",
+                      <Briefcase className="h-4 w-4" />,
+                      true,
+                      "E.g., Executive Assistant",
+                    )}
+                    {renderFormField(
+                      "divorce",
+                      "Relationship Status",
+                      <Heart className="h-4 w-4" />,
+                      false,
+                      "E.g., Separated since 2022 (2 years)",
+                      "If applicable, include when and for how long",
+                    )}
+                    {renderFormField(
+                      "pet",
+                      "Pet Details",
+                      <PawPrint className="h-4 w-4" />,
+                      false,
+                      "E.g., Dog / Max / 3 years old",
+                      "Type, name, age (or 'None' if not applicable)",
+                    )}
+                    {renderFormField(
+                      "kids",
+                      "Children Details",
+                      <BabyIcon className="h-4 w-4" />,
+                      true,
+                      "E.g., Sofia / 8 / ABC School / Grade 3",
+                      "Names, ages, schools, grades (or 'NA' if not applicable)",
+                    )}
+                    {renderFormField(
+                      "weather",
+                      "Current Weather & Time",
+                      <CloudSun className="h-4 w-4" />,
+                      true,
+                      "E.g., Sunny, 3:45 PM",
+                    )}
+                    {renderFormField(
+                      "parents",
+                      "Parent Details",
+                      <Users className="h-4 w-4" />,
+                      true,
+                      "E.g., Mother (62, retired), Father (deceased)",
+                      "Just put N/A if not mentioned",
+                    )}
+                    {renderFormField(
+                      "plans",
+                      "Weekend Plans",
+                      <Calendar className="h-4 w-4" />,
+                      true,
+                      "E.g., Beach trip with friends",
+                    )}
+                    {renderFormField(
+                      "ethnicity",
+                      "Ethnicity",
+                      <Globe className="h-4 w-4" />,
+                      false,
+                      "E.g., Filipina Taiwanese",
+                    )}
+                    {renderFormField(
+                      "car",
+                      "Vehicle Details",
+                      <Car className="h-4 w-4" />,
+                      false,
+                      "E.g., Toyota Corolla 2020",
+                      "Make, model, year (or 'None' if not applicable)",
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Client Details Section */}
+            <div
+              className={cn(
+                "bg-[#1a1a1a] border-l-4 rounded-lg overflow-hidden transition-all duration-300",
+                activeSection === "client" ? "border-l-[#FE2C55]" : "border-l-transparent hover:border-l-[#FE2C55]/30",
+              )}
+            >
+              <div className="flex items-center p-4 cursor-pointer" onClick={() => toggleSection("client")}>
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#FE2C55] to-[#25F4EE] flex items-center justify-center mr-3 shadow-lg">
+                  <UserIcon className="h-5 w-5 text-white" />
+                </div>
+                <h2 className="text-lg font-semibold flex-1">
+                  Client Details
+                  <span
+                    className={cn(
+                      "ml-2 inline-flex h-5 w-5 items-center justify-center rounded-full text-xs",
+                      isSectionComplete("client") ? "bg-[#FE2C55]/20 text-[#FE2C55]" : "bg-gray-800 text-gray-400",
+                    )}
+                  >
+                    {isSectionComplete("client") ? <CheckCircle className="h-3 w-3" /> : "!"}
+                  </span>
+                </h2>
+                <button className="h-8 w-8 rounded-full flex items-center justify-center bg-[#252525] text-gray-400 hover:bg-[#333] hover:text-white transition-colors">
+                  {expandedSections.client ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                </button>
+              </div>
+
+              {expandedSections.client && (
+                <div className="p-5 border-t border-[#333] animate-in fade-in-50 duration-300">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {renderFormField(
+                      "clientName",
+                      "Full Name and Age",
+                      <UserIcon className="h-4 w-4" />,
+                      true,
+                      "E.g., John Doe / 32",
+                    )}
+                    {renderFormField(
+                      "clientLocation",
+                      "Location",
+                      <MapPin className="h-4 w-4" />,
+                      true,
+                      "E.g., New York",
+                    )}
+                    {renderFormField(
+                      "clientWork",
+                      "Occupation",
+                      <Briefcase className="h-4 w-4" />,
+                      true,
+                      "E.g., Marketing Manager",
+                    )}
+                    {renderFormField(
+                      "hobbies",
+                      "Hobbies",
+                      <Hiking className="h-4 w-4" />,
+                      false,
+                      "E.g., Hiking, Travel",
+                      "Enter 'None' if not applicable",
+                    )}
+                    {renderFormField(
+                      "clientkid",
+                      "Children Details",
+                      <BabyIcon className="h-4 w-4" />,
+                      false,
+                      "E.g., Lily / 3",
+                      "Names and ages (or 'None' if not applicable)",
+                    )}
+                    {renderFormField(
+                      "clientnickname",
+                      "Nickname",
+                      <Tag className="h-4 w-4" />,
+                      true,
+                      "E.g., Johnny",
+                      "Enter 'None' if not applicable",
+                    )}
+                    {renderFormField(
+                      "clientweekend",
+                      "Weekend Plans",
+                      <Calendar className="h-4 w-4" />,
+                      true,
+                      "E.g., Fishing trip",
+                      "Enter 'None' if not applicable",
+                    )}
+                    {renderFormField(
+                      "clientweather",
+                      "Weather and Time",
+                      <CloudRain className="h-4 w-4" />,
+                      true,
+                      "E.g., Rainy, 10:30 AM",
+                      "Based on client's location",
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Topics Section */}
+            <div
+              className={cn(
+                "bg-[#1a1a1a] border-l-4 rounded-lg overflow-hidden transition-all duration-300",
+                activeSection === "topics" ? "border-l-white" : "border-l-transparent hover:border-l-white/30",
+              )}
+            >
+              <div className="flex items-center p-4 cursor-pointer" onClick={() => toggleSection("topics")}>
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-white to-gray-500 flex items-center justify-center mr-3 shadow-lg">
+                  <FileText className="h-5 w-5 text-[#121212]" />
+                </div>
+                <h2 className="text-lg font-semibold flex-1">
+                  Topics to Discuss
+                  <span
+                    className={cn(
+                      "ml-2 inline-flex h-5 w-5 items-center justify-center rounded-full text-xs",
+                      isSectionComplete("topics") ? "bg-white/20 text-white" : "bg-gray-800 text-gray-400",
+                    )}
+                  >
+                    {isSectionComplete("topics") ? <CheckCircle className="h-3 w-3" /> : "!"}
+                  </span>
+                </h2>
+                <button className="h-8 w-8 rounded-full flex items-center justify-center bg-[#252525] text-gray-400 hover:bg-[#333] hover:text-white transition-colors">
+                  {expandedSections.topics ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                </button>
+              </div>
+
+              {expandedSections.topics && (
+                <div className="p-5 border-t border-[#333] animate-in fade-in-50 duration-300">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {renderFormField(
+                      "beforeCall",
+                      "What are you doing before Video Call?",
+                      <Clock className="h-4 w-4" />,
+                      true,
+                      "E.g., Preparing lunch",
+                      "",
+                      "Activities you were doing just before the video call",
+                    )}
+                    {renderFormField(
+                      "afterCall",
+                      "What will you do after the Call?",
+                      <Clock className="h-4 w-4" />,
+                      true,
+                      "E.g., Going to the mall",
+                      "",
+                      "What you plan to do after finishing the video call",
+                    )}
+                    {renderFormField(
+                      "kidLocation",
+                      "Where is your child right now, and what is she doing?",
+                      <BabyIcon className="h-4 w-4" />,
+                      true,
+                      "E.g., At school",
+                      "Asan ung Anak mo at ano ung Ginagawa nya?",
+                    )}
+                    <div className="space-y-2 md:col-span-2">
+                      <label htmlFor="remarks" className="text-sm font-medium">
+                        Additional Topics
+                      </label>
+                      <div className="relative">
+                        <div className="absolute left-3 top-3 text-muted-foreground">
+                          <Edit className="h-4 w-4" />
+                        </div>
+                        <Textarea
+                          id="remarks"
+                          name="remarks"
+                          value={formData.remarks}
+                          onChange={handleInputChange}
+                          className="pl-10 min-h-[100px] border-white/20 focus:border-white focus:ring-1 focus:ring-white/20 dark:border-white/20 dark:focus:border-white dark:focus:ring-white/20"
+                          placeholder="Specific topics you'd like to discuss with your client..."
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Ilagay nyo dito ung gusto nyo I highlight sa Tawag.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="flex justify-between mt-8 pt-6 border-t border-[#333333]">
+            <Button
+              variant="outline"
+              onClick={handleReset}
+              className="border-[#FE2C55] text-[#FE2C55] hover:bg-[#FE2C55]/10 dark:border-[#FE2C55] dark:text-[#FE2C55] dark:hover:bg-[#FE2C55]/10"
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" /> Reset Form
+            </Button>
+            <Button
+              onClick={handleGeneratePdf}
+              disabled={!isFormValid()}
+              className="bg-gradient-to-r from-[#FE2C55] to-[#25F4EE] hover:opacity-90 text-white font-medium transition-all duration-200"
+            >
+              <FileText className="mr-2 h-4 w-4" /> Generate PDF
+            </Button>
+          </div>
+        </CardContent>
       </Card>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-4xl dark:bg-gray-900 dark:border-gray-800">
-          <DialogHeader>
-            <DialogTitle className="flex items-center">
-              <FileText className="mr-2 h-5 w-5" /> Video Call Information PDF
+        <DialogContent className="max-w-4xl dark:bg-[#121212] dark:border-[#333333]">
+          <DialogHeader className="bg-[#000000] -mx-6 -mt-6 px-6 py-4 rounded-t-lg border-b border-[#333333]">
+            <DialogTitle className="flex items-center text-[#25F4EE]">
+              <FileText className="mr-2 h-5 w-5" /> Palitan ung Filename ng Name ng Client NYO! example Jose
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-gray-300">
               Preview your generated PDF. Rename the file with the client's name when downloading.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="relative min-h-[60vh] bg-muted rounded-md overflow-hidden">
+          <div className="relative min-h-[60vh] bg-[#000000] rounded-md overflow-hidden border-2 border-dashed border-[#333333]">
             {isLoading ? (
-              <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm">
-                <div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin mb-2"></div>
-                <p className="text-sm">Generating your document...</p>
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#000000]/80 backdrop-blur-sm">
+                <div className="h-12 w-12 rounded-full border-4 border-[#25F4EE] border-t-transparent animate-spin mb-4"></div>
+                <p className="text-sm font-medium text-[#25F4EE]">Generating your document...</p>
               </div>
             ) : pdfUrl ? (
               <iframe ref={pdfRef} src={pdfUrl} className="w-full h-[60vh]" title="PDF Preview" frameBorder="0" />
@@ -879,16 +1012,34 @@ export default function VideoCallTemplate() {
             )}
           </div>
 
-          <DialogFooter className="flex justify-between sm:justify-between">
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-              Edit Information
+          <DialogFooter className="flex justify-between sm:justify-between bg-[#000000] -mx-6 -mb-6 px-6 py-4 rounded-b-lg border-t border-[#333333]">
+            <Button
+              variant="outline"
+              onClick={() => setIsDialogOpen(false)}
+              className="border-[#25F4EE] text-[#25F4EE] hover:bg-[#25F4EE]/10 dark:border-[#25F4EE] dark:text-[#25F4EE] dark:hover:bg-[#25F4EE]/10"
+            >
+              <Edit className="mr-2 h-4 w-4" /> Edit Information
             </Button>
-            <Button onClick={handleDownloadPdf} disabled={!pdfUrl || isLoading}>
+            <Button
+              onClick={handleDownloadPdf}
+              disabled={!pdfUrl || isLoading}
+              className="bg-[#FE2C55] hover:bg-[#FE2C55]/80 text-white font-medium transition-all duration-200"
+            >
               <Download className="mr-2 h-4 w-4" /> Download PDF
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Confetti container */}
+      <div ref={confettiContainerRef} className="fixed top-0 left-0 w-full h-full pointer-events-none z-50"></div>
+
+      <style jsx global>{`
+        @keyframes confetti-fall {
+          0% { transform: translateY(-100px) rotate(0deg); opacity: 1; }
+          100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+        }
+      `}</style>
     </div>
   )
 }
