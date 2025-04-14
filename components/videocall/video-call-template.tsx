@@ -605,12 +605,12 @@ export default function VideoCallTemplate() {
 
   return (
     <div className="container mx-auto py-6 max-w-4xl">
-      <Card className="border shadow-lg overflow-hidden dark:bg-[#121212] dark:border-[#333333] relative">
+      <Card className="border shadow-lg overflow-hidden bg-white dark:bg-[#121212] dark:border-[#333333] relative">
         {/* TikTok-style decorative elements */}
         <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-[#25F4EE]/20 to-[#FE2C55]/20 rounded-bl-full -z-10"></div>
         <div className="absolute bottom-0 left-0 w-32 h-32 bg-gradient-to-tr from-[#25F4EE]/20 to-[#FE2C55]/20 rounded-tr-full -z-10"></div>
 
-        <div className="pb-4 dark:text-white bg-gradient-to-r from-[#000000] to-[#121212] border-b border-[#333333] p-6">
+        <div className="pb-4 text-black dark:text-white bg-gradient-to-r from-white to-gray-100 dark:from-[#000000] dark:to-[#121212] border-b border-gray-200 dark:border-[#333333] p-6">
           <div className="flex items-center justify-center gap-2 mb-2">
             <div className="relative">
               <Video className="h-6 w-6 text-[#25F4EE]" />
@@ -634,7 +634,7 @@ export default function VideoCallTemplate() {
                 Complete
               </span>
             </div>
-            <div className="h-2 w-full bg-[#333333] rounded-full overflow-hidden">
+            <div className="h-2 w-full bg-gray-200 dark:bg-[#333333] rounded-full overflow-hidden">
               <div
                 className={`h-full bg-gradient-to-r ${getProgressColor()} transition-all duration-500 ease-out`}
                 style={{ width: `${progress}%` }}
@@ -657,7 +657,7 @@ export default function VideoCallTemplate() {
             {/* Model Details Section */}
             <div
               className={cn(
-                "bg-[#1a1a1a] border-l-4 rounded-lg overflow-hidden transition-all duration-300",
+                "bg-gray-50 dark:bg-[#1a1a1a] border-l-4 rounded-lg overflow-hidden transition-all duration-300",
                 activeSection === "model" ? "border-l-[#25F4EE]" : "border-l-transparent hover:border-l-[#25F4EE]/30",
               )}
             >
@@ -676,13 +676,13 @@ export default function VideoCallTemplate() {
                     {isSectionComplete("model") ? <CheckCircle className="h-3 w-3" /> : "!"}
                   </span>
                 </h2>
-                <button className="h-8 w-8 rounded-full flex items-center justify-center bg-[#252525] text-gray-400 hover:bg-[#333] hover:text-white transition-colors">
+                <button className="h-8 w-8 rounded-full flex items-center justify-center bg-gray-200 dark:bg-[#252525] text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-[#333] hover:text-black dark:hover:text-white transition-colors">
                   {expandedSections.model ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                 </button>
               </div>
 
               {expandedSections.model && (
-                <div className="p-5 border-t border-[#333] animate-in fade-in-50 duration-300">
+                <div className="p-5 border-t border-gray-200 dark:border-[#333] animate-in fade-in-50 duration-300">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {renderFormField(
                       "purpose",
@@ -791,7 +791,7 @@ export default function VideoCallTemplate() {
             {/* Client Details Section */}
             <div
               className={cn(
-                "bg-[#1a1a1a] border-l-4 rounded-lg overflow-hidden transition-all duration-300",
+                "bg-gray-50 dark:bg-[#1a1a1a] border-l-4 rounded-lg overflow-hidden transition-all duration-300",
                 activeSection === "client" ? "border-l-[#FE2C55]" : "border-l-transparent hover:border-l-[#FE2C55]/30",
               )}
             >
@@ -810,13 +810,13 @@ export default function VideoCallTemplate() {
                     {isSectionComplete("client") ? <CheckCircle className="h-3 w-3" /> : "!"}
                   </span>
                 </h2>
-                <button className="h-8 w-8 rounded-full flex items-center justify-center bg-[#252525] text-gray-400 hover:bg-[#333] hover:text-white transition-colors">
+                <button className="h-8 w-8 rounded-full flex items-center justify-center bg-gray-200 dark:bg-[#252525] text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-[#333] hover:text-black dark:hover:text-white transition-colors">
                   {expandedSections.client ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                 </button>
               </div>
 
               {expandedSections.client && (
-                <div className="p-5 border-t border-[#333] animate-in fade-in-50 duration-300">
+                <div className="p-5 border-t border-gray-200 dark:border-[#333] animate-in fade-in-50 duration-300">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {renderFormField(
                       "clientName",
@@ -887,8 +887,10 @@ export default function VideoCallTemplate() {
             {/* Topics Section */}
             <div
               className={cn(
-                "bg-[#1a1a1a] border-l-4 rounded-lg overflow-hidden transition-all duration-300",
-                activeSection === "topics" ? "border-l-white" : "border-l-transparent hover:border-l-white/30",
+                "bg-gray-50 dark:bg-[#1a1a1a] border-l-4 rounded-lg overflow-hidden transition-all duration-300",
+                activeSection === "topics"
+                  ? "border-l-gray-500 dark:border-l-white"
+                  : "border-l-transparent hover:border-l-gray-500/30 dark:hover:border-l-white/30",
               )}
             >
               <div className="flex items-center p-4 cursor-pointer" onClick={() => toggleSection("topics")}>
@@ -906,13 +908,13 @@ export default function VideoCallTemplate() {
                     {isSectionComplete("topics") ? <CheckCircle className="h-3 w-3" /> : "!"}
                   </span>
                 </h2>
-                <button className="h-8 w-8 rounded-full flex items-center justify-center bg-[#252525] text-gray-400 hover:bg-[#333] hover:text-white transition-colors">
+                <button className="h-8 w-8 rounded-full flex items-center justify-center bg-gray-200 dark:bg-[#252525] text-gray-600 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-[#333] hover:text-black dark:hover:text-white transition-colors">
                   {expandedSections.topics ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                 </button>
               </div>
 
               {expandedSections.topics && (
-                <div className="p-5 border-t border-[#333] animate-in fade-in-50 duration-300">
+                <div className="p-5 border-t border-gray-200 dark:border-[#333] animate-in fade-in-50 duration-300">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {renderFormField(
                       "beforeCall",
@@ -953,7 +955,7 @@ export default function VideoCallTemplate() {
                           name="remarks"
                           value={formData.remarks}
                           onChange={handleInputChange}
-                          className="pl-10 min-h-[100px] border-white/20 focus:border-white focus:ring-1 focus:ring-white/20 dark:border-white/20 dark:focus:border-white dark:focus:ring-white/20"
+                          className="pl-10 min-h-[100px] border-gray-300 dark:border-white/20 focus:border-gray-500 dark:focus:border-white focus:ring-1 focus:ring-gray-500/20 dark:focus:ring-white/20"
                           placeholder="Specific topics you'd like to discuss with your client..."
                         />
                       </div>
@@ -967,7 +969,7 @@ export default function VideoCallTemplate() {
             </div>
           </div>
 
-          <div className="flex justify-between mt-8 pt-6 border-t border-[#333333]">
+          <div className="flex justify-between mt-8 pt-6 border-t border-gray-200 dark:border-[#333333]">
             <Button
               variant="outline"
               onClick={handleReset}
@@ -987,19 +989,19 @@ export default function VideoCallTemplate() {
       </Card>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-4xl dark:bg-[#121212] dark:border-[#333333]">
-          <DialogHeader className="bg-[#000000] -mx-6 -mt-6 px-6 py-4 rounded-t-lg border-b border-[#333333]">
+        <DialogContent className="max-w-4xl bg-white dark:bg-[#121212] border-gray-200 dark:border-[#333333]">
+          <DialogHeader className="bg-gray-50 dark:bg-[#000000] -mx-6 -mt-6 px-6 py-4 rounded-t-lg border-b border-gray-200 dark:border-[#333333]">
             <DialogTitle className="flex items-center text-[#25F4EE]">
               <FileText className="mr-2 h-5 w-5" /> Palitan ung Filename ng Name ng Client NYO! example Jose
             </DialogTitle>
-            <DialogDescription className="text-gray-300">
+            <DialogDescription className="text-gray-600 dark:text-gray-300">
               Preview your generated PDF. Rename the file with the client's name when downloading.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="relative min-h-[60vh] bg-[#000000] rounded-md overflow-hidden border-2 border-dashed border-[#333333]">
+          <div className="relative min-h-[60vh] bg-gray-50 dark:bg-[#000000] rounded-md overflow-hidden border-2 border-dashed border-gray-300 dark:border-[#333333]">
             {isLoading ? (
-              <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#000000]/80 backdrop-blur-sm">
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-50/80 dark:bg-[#000000]/80 backdrop-blur-sm">
                 <div className="h-12 w-12 rounded-full border-4 border-[#25F4EE] border-t-transparent animate-spin mb-4"></div>
                 <p className="text-sm font-medium text-[#25F4EE]">Generating your document...</p>
               </div>
@@ -1012,7 +1014,7 @@ export default function VideoCallTemplate() {
             )}
           </div>
 
-          <DialogFooter className="flex justify-between sm:justify-between bg-[#000000] -mx-6 -mb-6 px-6 py-4 rounded-b-lg border-t border-[#333333]">
+          <DialogFooter className="flex justify-between sm:justify-between bg-gray-50 dark:bg-[#000000] -mx-6 -mb-6 px-6 py-4 rounded-b-lg border-t border-gray-200 dark:border-[#333333]">
             <Button
               variant="outline"
               onClick={() => setIsDialogOpen(false)}
