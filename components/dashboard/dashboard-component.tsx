@@ -18,7 +18,6 @@ import {
   DollarSign,
   AlertCircle,
   CheckCircle2,
-  XCircle,
   FileText,
   BarChart3,
   Activity,
@@ -142,7 +141,7 @@ export default function DashboardComponent() {
         clientCount: agentClients[agent].size,
       }))
       .sort((a, b) => b.value - a.value)
-      .slice(0, 5)
+      .slice(0, 10)
 
     // Calculate percentages
     const maxDeposit = sortedAgents.length > 0 ? sortedAgents[0].value : 0
@@ -759,44 +758,6 @@ export default function DashboardComponent() {
                       <Progress
                         value={
                           (stats.pendingRequests /
-                            (stats.pendingRequests + stats.approvedRequests + stats.rejectedRequests || 1)) *
-                          100
-                        }
-                        className="h-2 bg-slate-100 dark:bg-slate-800"
-                        indicatorClassName="bg-amber-500"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="flex items-center gap-1">
-                          <CheckCircle2 className="h-4 w-4 text-green-500" />
-                          Approved
-                        </span>
-                        <span className="font-medium">{stats.approvedRequests}</span>
-                      </div>
-                      <Progress
-                        value={
-                          (stats.approvedRequests /
-                            (stats.pendingRequests + stats.approvedRequests + stats.rejectedRequests || 1)) *
-                          100
-                        }
-                        className="h-2 bg-slate-100 dark:bg-slate-800"
-                        indicatorClassName="bg-green-500"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="flex items-center gap-1">
-                          <XCircle className="h-4 w-4 text-red-500" />
-                          Rejected
-                        </span>
-                        <span className="font-medium">{stats.rejectedRequests}</span>
-                      </div>
-                      <Progress
-                        value={
-                          (stats.rejectedRequests /
                             (stats.pendingRequests + stats.approvedRequests + stats.rejectedRequests || 1)) *
                           100
                         }
