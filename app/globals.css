@@ -438,7 +438,7 @@
 }
 
 .agent-row.editing {
-  @apply bg-primary/5;
+  @apply bg-blue-50 dark:bg-blue-900/20;
 }
 
 .commission-tier-0 {
@@ -458,41 +458,4 @@
 }
 .commission-tier-10 {
   @apply text-gray-500;
-}
-
-/* Professional dashboard card styles */
-.professional-card {
-  @apply bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm rounded-lg overflow-hidden;
-  transition: all 0.3s ease;
-}
-
-.professional-card:hover {
-  @apply shadow-md border-slate-300 dark:border-slate-600;
-  transform: translateY(-2px);
-}
-
-.professional-card-header {
-  @apply bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-4 py-3;
-}
-
-.professional-card-body {
-  @apply p-4;
-}
-
-.professional-card-footer {
-  @apply bg-slate-50 dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 px-4 py-3;
-}
-
-/* Professional dashboard grid layout */
-.dashboard-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 1rem;
-}
-
-@media (min-width: 768px) {
-  .dashboard-grid {
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 1.5rem;
-  }
 }

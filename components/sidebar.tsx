@@ -73,13 +73,6 @@ const NavItem = React.memo(({ icon: Icon, label, active, onClick, badge, collaps
 })
 
 export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
-  const [collapsed, setCollapsed] = useState(() => {
-    if (typeof window !== "undefined") {
-      const savedState = localStorage.getItem("sidebarCollapsed")
-      return savedState === "true"
-    }
-    return false
-  })
   const [isMobile, setIsMobile] = useState(isMobileInit())
   const [isSheetOpen, setIsSheetOpen] = useState(false)
   const [expandedGroups, setExpandedGroups] = useState({
@@ -93,6 +86,13 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
   const router = useRouter()
   const { user, logout, isAdmin, isViewer } = useAuth()
   const { orderRequests } = useClientContext()
+  const [collapsed, setCollapsed] = useState(() => {
+    if (typeof window !== "undefined") {
+      const savedState = localStorage.getItem("sidebarCollapsed")
+      return savedState === "true"
+    }
+    return false
+  })
 
   // Calculate pending order requests
   const pendingOrderRequests = orderRequests?.filter((request) => request.status === "Pending")?.length || 0
@@ -159,7 +159,7 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
     const customAvatar = localStorage.getItem("userAvatar")
 
     if (customAvatar) {
-      return <AvatarImage src={customAvatar} alt="User avatar" />
+      return <AvatarImage src={customAvatar || "/placeholder.svg"} alt="User avatar" />
     }
 
     if (isAdmin) {
@@ -564,7 +564,11 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
             className={cn("ml-auto transition-all duration-300 hover:bg-primary/10", collapsed && "mx-auto")}
             onClick={toggleCollapse}
           >
-            <ChevronRight className={cn("h-6 w-6 transition-transform duration-300", !collapsed && "rotate-180")} />
+            {collapsed ? (
+              <LayoutDashboard className="h-6 w-6" />
+            ) : (
+              <ChevronRight className={cn("h-6 w-6 transition-transform duration-300", !collapsed && "rotate-180")} />
+            )}
           </Button>
         </div>
 

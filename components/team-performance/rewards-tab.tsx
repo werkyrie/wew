@@ -54,6 +54,10 @@ export default function RewardsTab() {
     status: "Pending",
   })
 
+  // Add state for sorting
+  const [sortField, setSortField] = useState<string | null>("date")
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc")
+
   // Calculate pagination
   const indexOfLastItem = currentPage * itemsPerPage
   const indexOfFirstItem = indexOfLastItem - itemsPerPage
@@ -283,6 +287,37 @@ export default function RewardsTab() {
     }
   }
 
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc")
+    } else {
+      setSortField(field)
+      setSortDirection("asc")
+    }
+  }
+
+  // Sort rewards
+  const sortedRewards = [...existingRewards].sort((a, b) => {
+    if (sortField) {
+      const aValue = sortField === "date" ? new Date(a.date).getTime() : a[sortField as keyof Reward]
+      const bValue = sortField === "date" ? new Date(b.date).getTime() : b[sortField as keyof Reward]
+
+      if (aValue < bValue) {
+        return sortDirection === "asc" ? -1 : 1
+      }
+      if (aValue > bValue) {
+        return sortDirection === "asc" ? 1 : -1
+      }
+    }
+    return 0
+  })
+
+  // Calculate pagination based on sorted rewards
+  const sortedIndexOfLastItem = currentPage * itemsPerPage
+  const sortedIndexOfFirstItem = sortedIndexOfLastItem - itemsPerPage
+  const currentSortedRewards = sortedRewards.slice(sortedIndexOfFirstItem, sortedIndexOfLastItem)
+  const sortedTotalPages = Math.ceil(sortedRewards.length / itemsPerPage)
+
   return (
     <div className="space-y-6">
       {!isViewer && (
@@ -413,7 +448,10 @@ export default function RewardsTab() {
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/50">
-                  <TableHead className="font-medium">Date</TableHead>
+                  <TableHead className="font-medium cursor-pointer" onClick={() => handleSort("date")}>
+                    Date
+                    {sortField === "date" && (sortDirection === "asc" ? " ↑" : " ↓")}
+                  </TableHead>
                   <TableHead className="font-medium">Agent</TableHead>
                   <TableHead className="font-medium">Description</TableHead>
                   <TableHead className="font-medium">Rewards</TableHead>
@@ -422,8 +460,8 @@ export default function RewardsTab() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {currentRewards.length > 0 ? (
-                  currentRewards.map((reward) => (
+                {currentSortedRewards.length > 0 ? (
+                  currentSortedRewards.map((reward) => (
                     <TableRow key={reward.id} className="hover:bg-muted/30 transition-colors">
                       <TableCell>
                         {editingId === reward.id ? (
@@ -567,7 +605,7 @@ export default function RewardsTab() {
       {existingRewards.length > 0 && (
         <PaginationControls
           currentPage={currentPage}
-          totalPages={totalPages}
+          totalPages={sortedTotalPages}
           onPageChange={handlePageChange}
           totalItems={existingRewards.length}
           itemsPerPage={itemsPerPage}
